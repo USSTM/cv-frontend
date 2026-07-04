@@ -62,10 +62,14 @@ function App() {
         <p className="island-kicker mb-2">Baseline routes</p>
         <ul className="m-0 list-disc space-y-2 pl-5 text-sm text-[var(--sea-ink-soft)]">
           <li>
-            Navigate to <code>/login</code>, <code>/catalog</code>, <code>/cart</code>, <code>/checkout</code>, <code>/activity</code>, <code>/approvals</code>, <code>/admin</code>, and <code>/settings</code>.
+            Navigate to <code>/login</code>, <code>/catalog</code>,{' '}
+            <code>/cart</code>, <code>/checkout</code>, <code>/activity</code>,{' '}
+            <code>/approvals</code>, <code>/admin</code>, and{' '}
+            <code>/settings</code>.
           </li>
           <li>
-            Each route is a placeholder page for the issue scaffold and can be expanded later.
+            Each route is a placeholder page for the issue scaffold and can be
+            expanded later.
           </li>
           <li>
             The routes are wired into the home page for quick manual checks.
