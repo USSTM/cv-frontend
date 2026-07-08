@@ -13,7 +13,7 @@ export default function RoutePage({
 }: RoutePageProps) {
   return (
     <main className="page-wrap px-4 py-12">
-      <section className="island-shell rounded-2xl p-6 sm:p-8">
+      <section className="island-shell rounded-lg p-6 sm:p-8">
         <p className="island-kicker mb-2">{kicker}</p>
         <h1 className="display-title mb-3 text-4xl font-bold text-[var(--sea-ink)] sm:text-5xl">
           {title}
@@ -22,7 +22,7 @@ export default function RoutePage({
           {description}
         </p>
 
-        <div className="mt-8 rounded-2xl border border-[var(--line)] bg-[rgba(255,255,255,0.44)] p-5">
+        <div className="mt-8 rounded-lg border border-[var(--line)] bg-[rgba(255,255,255,0.44)] p-5">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--sea-ink-soft)]">
             Baseline scope
           </h2>
