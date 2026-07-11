@@ -32,7 +32,6 @@
   --foreground: oklch(0.141 0.005 285.823);
   --card: #fafafa;
   --card-foreground: oklch(0.141 0.005 285.823);
- 
 }
 
 @theme inline {
@@ -86,7 +85,7 @@ body {
   color: var(--sea-ink);
   font-family: var(--font-sans);
   background-color: var(--bg-base);
-  
+
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -113,7 +112,7 @@ body::after {
 }
 
 a {
-  color: var(--lagoon-deep);
+  /* color: var(--lagoon-deep); */
   text-decoration-color: rgba(50, 143, 151, 0.4);
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
@@ -121,6 +120,23 @@ a {
 
 a:hover {
   color: #246f76;
+}
+
+main {
+  position: relative;
+  width: min(1440px, calc(100% - 2rem));
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+h1:not(#not-found h1),
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 700;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
 code {
@@ -167,7 +183,11 @@ pre code {
 }
 
 .feature-card {
-  background: linear-gradient(165deg, color-mix(in oklab, var(--surface-strong) 93%, white 7%), var(--surface));
+  background: linear-gradient(
+    165deg,
+    color-mix(in oklab, var(--surface-strong) 93%, white 7%),
+    var(--surface)
+  );
   box-shadow:
     0 1px 0 var(--inset-glint) inset,
     0 18px 34px rgba(30, 90, 72, 0.1),
@@ -182,7 +202,10 @@ pre code {
 button,
 .island-shell,
 a {
-  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease,
+  transition:
+    background-color 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease,
     transform 180ms ease;
 }
 
@@ -200,12 +223,15 @@ a {
   align-items: center;
   border-radius: 0.5rem;
   background: var(--header-bg);
-  padding: 0.75rem;
+  padding: 0.45rem 0.75rem;
   font-size: 1rem;
   font-weight: 400;
   color: var(--color-background);
   text-decoration: none;
-  transition: background-color 300ms ease, transform 300ms ease, color 300ms ease;
+  transition:
+    background-color 300ms ease,
+    transform 300ms ease,
+    color 300ms ease;
 }
 
 .nav-link:hover,
@@ -229,14 +255,16 @@ a {
   font-weight: 600;
   color: #ffffff;
   text-decoration: none;
-  transition: background-color 300ms ease, transform 300ms ease, color 300ms ease;
+  transition:
+    background-color 300ms ease,
+    transform 300ms ease,
+    color 300ms ease;
 }
 
 .btn:hover {
   background: var(--header-bg);
   color: #ffffff;
 }
-
 
 .btn-alt {
   display: inline-flex;
@@ -248,7 +276,10 @@ a {
   font-weight: 600;
   color: #ffffff;
   text-decoration: none;
-  transition: background-color 300ms ease, transform 300ms ease, color 300ms ease;
+  transition:
+    background-color 300ms ease,
+    transform 300ms ease,
+    color 300ms ease;
 }
 .btn-alt:hover {
   background: white;
