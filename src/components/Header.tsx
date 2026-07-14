@@ -7,7 +7,7 @@ const NAV_ITEMS = [
   { label: 'Home', to: '/' },
   { label: 'Catalog', to: '/catalog' },
   { label: 'Cart', to: '/cart' },
-  { label: 'Checkout', to: '/checkout' },
+  { label: 'Approvals', to: '/approvals' },
 ]
 
 const EXTRA_ITEMS = [
