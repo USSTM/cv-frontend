@@ -66,7 +66,7 @@ export default function Header() {
         </div>
 
         <div className="hidden items-center gap-4 md:flex">
-          <ThemeToggle />
+          {/* <ThemeToggle /> */}
           <Link
             to="/settings"
             className="nav-link"
@@ -91,9 +91,7 @@ export default function Header() {
 
           {menuOpen && (
             <div className="absolute right-0 top-12 w-64 rounded-lg border border-(--line) bg-(--color-background) py-2 text-(--header-bg) shadow-lg">
-              <div className="px-4 py-2">
-                <ThemeToggle />
-              </div>
+              <div className="px-4 py-2">{/* <ThemeToggle /> */}</div>
               <div className="my-1 border-t border-(--line)" />
               {[...NAV_ITEMS, ...EXTRA_ITEMS].map((item) => (
                 <Link
