@@ -13,28 +13,21 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
+import type { Item } from '@/types/item'
+
 export const Route = createFileRoute('/catalog')({
   component: CatalogPage,
 })
 
-type ItemType = 'Take' | 'Borrow' | 'Request'
-
 // Mock data, to replace with actual data pulled from a db/backend
-interface CatalogItem {
-  id: string
-  title: string
-  category: string
-  description: string
-  quantity: number
-  type: ItemType
-}
-const items: CatalogItem[] = [
+
+const items: Item[] = [
   {
     id: '1',
     title: 'MacBook Charger',
     category: 'Electronics',
     description: 'USB-C 96W charger.',
-    quantity: 5,
+    stock: 5,
     type: 'Borrow',
   },
   {
@@ -42,7 +35,7 @@ const items: CatalogItem[] = [
     title: 'Scientific Calculator',
     category: 'School Supplies',
     description: 'TI-84 Plus CE',
-    quantity: 10,
+    stock: 10,
     type: 'Borrow',
   },
   {
@@ -50,7 +43,7 @@ const items: CatalogItem[] = [
     title: 'Winter Coat',
     category: 'Clothing',
     description: 'Available to take home.',
-    quantity: 3,
+    stock: 3,
     type: 'Take',
   },
   {
@@ -58,7 +51,7 @@ const items: CatalogItem[] = [
     title: 'Notebook Bundle',
     category: 'School Supplies',
     description: 'Pack of 5 notebooks.',
-    quantity: 20,
+    stock: 20,
     type: 'Take',
   },
   {
@@ -66,7 +59,7 @@ const items: CatalogItem[] = [
     title: 'Arduino Kit',
     category: 'Maker Space',
     description: 'Currently unavailable.',
-    quantity: 0,
+    stock: 0,
     type: 'Request',
   },
 ]
@@ -131,7 +124,7 @@ function CatalogPage() {
                   <Badge>{item.type}</Badge>
                 </div>
                 <p className="text-sm text-(--sea-ink-soft)">{item.category}</p>
-                <div className="text-start">{item.quantity} in stock</div>
+                <div className="text-start">{item.stock} in stock</div>
               </div>
 
               <p className="mb-6 text-sm text-(--sea-ink-soft)">
