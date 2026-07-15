@@ -305,6 +305,7 @@ a {
 }
 .btn-inv:hover {
   background: var(--button-bg);
+  color: #ffffff;
   cursor: pointer;
 }
 
