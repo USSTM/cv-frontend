@@ -83,7 +83,7 @@ export default function Header() {
             <button
               type="button"
               onClick={() => setProfileOpen((open) => !open)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-white transition-colors duration-300 hover:bg-white/10"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-white transition-colors duration-300 hover:bg-white/10 cursor-pointer"
               aria-label="Open profile menu"
               aria-expanded={profileOpen}
               aria-haspopup="menu"
@@ -93,7 +93,7 @@ export default function Header() {
 
             {profileOpen && (
               <div
-                className="absolute right-0 top-12 w-40 rounded-lg border border-(--line) bg-(--color-background) py-2 text-(--header-bg) shadow-lg"
+                className="absolute right-0 top-12 w-40 rounded-lg border border-(--line) bg-(--color-background) py-2 text-(--header-bg) shadow-lg "
                 role="menu"
               >
                 <Link
