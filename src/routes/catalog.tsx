@@ -86,8 +86,11 @@ function CatalogPage() {
     <main className="page-wrap px-4 py-10 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-7xl space-y-8">
         <div>
+          <p className="island-kicker mb-2 text-(--kicker)!">
+            Shared collection
+          </p>
           <h1 className="display-title text-3xl font-bold">Catalog</h1>
-          <p className="mt-2 text-(--sea-ink-soft)">
+          <p className="mt-2 max-w-2xl text-(--sea-ink-soft)">
             Browse items available to take, borrow, or request.
           </p>
         </div>
