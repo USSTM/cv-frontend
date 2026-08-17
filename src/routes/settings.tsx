@@ -60,8 +60,8 @@ function SettingsPage() {
                 </div>
               </div>
               <div className="grid gap-5 px-5 py-5 sm:grid-cols-2 sm:px-6">
-                <ProfileField label="Name" value="Campus Vault Member" />
-                <ProfileField label="Email" value="member@usstm.edu" />
+                <ProfileField label="Name" value="Arsal Abrar" />
+                <ProfileField label="Email" value="arsal.abrar@torontomu.ca" />
               </div>
             </section>
 

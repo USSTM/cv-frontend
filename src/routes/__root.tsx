@@ -3,6 +3,7 @@ import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import Footer from '../components/Footer'
 import Header from '../components/Header'
+import { DemoProvider } from '../demo/DemoContext'
 
 import appCss from '../styles.css?url'
 
@@ -49,22 +50,13 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body className="min-h-screen bg-[var(--bg-base)] font-sans antialiased text-[var(--sea-ink)] wrap-anywhere selection:bg-[rgba(79,184,178,0.24)]">
-        <div className="flex min-h-screen flex-col">
-          <Header />
-          <div className="flex-1 pb-16">{children}</div>
-          <Footer />
-        </div>
-        <TanStackDevtools
-          config={{
-            position: 'bottom-right',
-          }}
-          plugins={[
-            {
-              name: 'Tanstack Router',
-              render: <TanStackRouterDevtoolsPanel />,
-            },
-          ]}
-        />
+        <DemoProvider>
+          <div className="flex min-h-screen flex-col">
+            <Header />
+            <div className="flex-1 pb-16">{children}</div>
+            <Footer />
+          </div>
+        </DemoProvider>
         <Scripts />
       </body>
     </html>

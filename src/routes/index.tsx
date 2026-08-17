@@ -7,6 +7,7 @@ import {
   PackageSearch,
   ShoppingCart,
 } from 'lucide-react'
+import { useDemo } from '@/demo/DemoContext'
 
 export const Route = createFileRoute('/')({ component: HomePage })
 
@@ -54,6 +55,7 @@ const nextSteps = [
 ]
 
 function HomePage() {
+  const { activeGroup } = useDemo()
   return (
     <main className="page-wrap px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
       <section className="grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(18rem,0.72fr)]">
@@ -98,7 +100,7 @@ function HomePage() {
             id="active-group-title"
             className="mt-2 text-xl font-bold text-(--sea-ink)"
           >
-            Your Active Group
+            {activeGroup}
           </h2>
           <p className="mt-3 text-sm leading-6 text-(--sea-ink-soft)">
             Your Cart, Checkout Review, bookings, borrowings, and requests are
