@@ -88,6 +88,9 @@ import type {
   GetCartData,
   GetCartErrors,
   GetCartResponses,
+  GetCurrentMemberData,
+  GetCurrentMemberErrors,
+  GetCurrentMemberResponses,
   GetGroupByIdData,
   GetGroupByIdErrors,
   GetGroupByIdResponses,
@@ -231,6 +234,9 @@ import type {
   UploadItemImageData,
   UploadItemImageErrors,
   UploadItemImageResponses,
+  UploadPreCheckoutConditionImageData,
+  UploadPreCheckoutConditionImageErrors,
+  UploadPreCheckoutConditionImageResponses,
   VerifyOtpData,
   VerifyOtpErrors,
   VerifyOtpResponses,
@@ -305,7 +311,7 @@ export const requestOtp = <ThrowOnError extends boolean = false>(
 /**
  * Verify OTP
  *
- * Verifies the OTP and returns access and refresh tokens
+ * Verifies the OTP and establishes an HTTP-only cookie session. Access and refresh tokens are not returned in the JSON response.
  */
 export const verifyOtp = <ThrowOnError extends boolean = false>(
   options: Options<VerifyOtpData, ThrowOnError>,
@@ -326,12 +332,12 @@ export const verifyOtp = <ThrowOnError extends boolean = false>(
 /**
  * Refresh Tokens
  *
- * Exchanges a valid refresh token for a new access/refresh token pair
+ * Renews the HTTP-only cookie session. The refresh token may be supplied by the refresh_token cookie; tokens are never returned in the JSON response.
  */
 export const refreshToken = <ThrowOnError extends boolean = false>(
-  options: Options<RefreshTokenData, ThrowOnError>,
+  options?: Options<RefreshTokenData, ThrowOnError>,
 ): RequestResult<RefreshTokenResponses, RefreshTokenErrors, ThrowOnError> =>
-  (options.client ?? client).post<
+  (options?.client ?? client).post<
     RefreshTokenResponses,
     RefreshTokenErrors,
     ThrowOnError
@@ -340,26 +346,28 @@ export const refreshToken = <ThrowOnError extends boolean = false>(
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...options?.headers,
     },
   })
 
 /**
  * Logout
  *
- * Revokes the refresh token
+ * Revokes the refresh token and clears HTTP-only session cookies. The refresh token may be supplied by the refresh_token cookie.
  */
 export const logout = <ThrowOnError extends boolean = false>(
-  options: Options<LogoutData, ThrowOnError>,
+  options?: Options<LogoutData, ThrowOnError>,
 ): RequestResult<LogoutResponses, LogoutErrors, ThrowOnError> =>
-  (options.client ?? client).post<LogoutResponses, LogoutErrors, ThrowOnError>({
-    url: '/auth/logout',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
+  (options?.client ?? client).post<LogoutResponses, LogoutErrors, ThrowOnError>(
+    {
+      url: '/auth/logout',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
     },
-  })
+  )
 
 /**
  * List all pre-defined time slots
@@ -536,6 +544,34 @@ export const getAvailabilityById = <ThrowOnError extends boolean = false>(
       },
     ],
     url: '/availability/{id}',
+    ...options,
+  })
+
+/**
+ * Get current member
+ *
+ * Returns the authenticated member identity, all role assignments, and group memberships for active-group selection.
+ */
+export const getCurrentMember = <ThrowOnError extends boolean = false>(
+  options?: Options<GetCurrentMemberData, ThrowOnError>,
+): RequestResult<
+  GetCurrentMemberResponses,
+  GetCurrentMemberErrors,
+  ThrowOnError
+> =>
+  (options?.client ?? client).get<
+    GetCurrentMemberResponses,
+    GetCurrentMemberErrors,
+    ThrowOnError
+  >({
+    security: [
+      {
+        key: 'BearerAuth',
+        scheme: 'bearer',
+        type: 'http',
+      },
+    ],
+    url: '/members/me',
     ...options,
   })
 
@@ -2185,6 +2221,41 @@ export const setItemPrimaryImage = <ThrowOnError extends boolean = false>(
     ],
     url: '/items/{itemId}/images/{imageId}/primary',
     ...options,
+  })
+
+/**
+ * Upload a pre-checkout condition photo
+ *
+ * Uploads a condition photo for an item before checkout. The returned beforeConditionUrl can be supplied to CheckoutCart.
+ */
+export const uploadPreCheckoutConditionImage = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<UploadPreCheckoutConditionImageData, ThrowOnError>,
+): RequestResult<
+  UploadPreCheckoutConditionImageResponses,
+  UploadPreCheckoutConditionImageErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).post<
+    UploadPreCheckoutConditionImageResponses,
+    UploadPreCheckoutConditionImageErrors,
+    ThrowOnError
+  >({
+    ...formDataBodySerializer,
+    security: [
+      {
+        key: 'BearerAuth',
+        scheme: 'bearer',
+        type: 'http',
+      },
+    ],
+    url: '/borrowings/pre-checkout-condition-image',
+    ...options,
+    headers: {
+      'Content-Type': null,
+      ...options.headers,
+    },
   })
 
 /**

@@ -12,6 +12,31 @@ export type User = {
   role: UserRole
 }
 
+export type MemberRole = {
+  name: string
+  scope: 'global' | 'group'
+  groupId?: Uuid
+}
+
+export type MemberGroup = {
+  id: Uuid
+  name: string
+  roles: Array<string>
+}
+
+export type CurrentMember = {
+  id: Uuid
+  email: string
+  /**
+   * All role assignments, including their scopes.
+   */
+  roles: Array<MemberRole>
+  /**
+   * Group memberships for choosing an active group.
+   */
+  groups: Array<MemberGroup>
+}
+
 export type GroupUser = {
   id: Uuid
   email: string
@@ -163,6 +188,10 @@ export type TokenResponse = {
   refresh_token: string
 }
 
+export type SessionResponse = {
+  message: string
+}
+
 export type RefreshRequest = {
   refresh_token: string
 }
@@ -208,7 +237,7 @@ export type CheckoutCartRequest = {
    */
   beforeCondition: 'unusable' | 'damaged' | 'decent' | 'good' | 'pristine'
   /**
-   * Photo URL for MEDIUM items (ignored for LOW/HIGH)
+   * Photo URL or storage key for MEDIUM items (ignored for LOW/HIGH). Use the beforeConditionUrl returned by UploadPreCheckoutConditionImage.
    */
   beforeConditionUrl: string
 }
@@ -421,6 +450,18 @@ export type BorrowingImage = {
   url: string
   image_type: 'before' | 'after'
   created_at: string
+}
+
+export type PreCheckoutConditionImage = {
+  itemId: Uuid
+  /**
+   * Storage key to pass as beforeConditionUrl when checking out.
+   */
+  beforeConditionUrl: string
+  /**
+   * Temporary presigned URL for previewing the uploaded photo.
+   */
+  previewUrl: string
 }
 
 export type GroupCreateRequest = {
@@ -645,15 +686,15 @@ export type VerifyOtpError = VerifyOtpErrors[keyof VerifyOtpErrors]
 
 export type VerifyOtpResponses = {
   /**
-   * OTP verified, tokens returned
+   * OTP verified and access_token/refresh_token cookies set
    */
-  200: TokenResponse
+  200: SessionResponse
 }
 
 export type VerifyOtpResponse = VerifyOtpResponses[keyof VerifyOtpResponses]
 
 export type RefreshTokenData = {
-  body: RefreshRequest
+  body?: RefreshRequest
   path?: never
   query?: never
   url: '/auth/refresh'
@@ -678,16 +719,16 @@ export type RefreshTokenError = RefreshTokenErrors[keyof RefreshTokenErrors]
 
 export type RefreshTokenResponses = {
   /**
-   * New token pair
+   * Session renewed and cookies rotated
    */
-  200: TokenResponse
+  200: SessionResponse
 }
 
 export type RefreshTokenResponse =
   RefreshTokenResponses[keyof RefreshTokenResponses]
 
 export type LogoutData = {
-  body: LogoutRequest
+  body?: LogoutRequest
   path?: never
   query?: never
   url: '/auth/logout'
@@ -959,6 +1000,37 @@ export type GetAvailabilityByIdResponses = {
 
 export type GetAvailabilityByIdResponse =
   GetAvailabilityByIdResponses[keyof GetAvailabilityByIdResponses]
+
+export type GetCurrentMemberData = {
+  body?: never
+  path?: never
+  query?: never
+  url: '/members/me'
+}
+
+export type GetCurrentMemberErrors = {
+  /**
+   * Unauthorized
+   */
+  401: Error
+  /**
+   * Internal Server Error
+   */
+  500: Error
+}
+
+export type GetCurrentMemberError =
+  GetCurrentMemberErrors[keyof GetCurrentMemberErrors]
+
+export type GetCurrentMemberResponses = {
+  /**
+   * Current member
+   */
+  200: CurrentMember
+}
+
+export type GetCurrentMemberResponse =
+  GetCurrentMemberResponses[keyof GetCurrentMemberResponses]
 
 export type GetUserAvailabilityData = {
   body?: never
@@ -3234,6 +3306,52 @@ export type SetItemPrimaryImageResponses = {
 
 export type SetItemPrimaryImageResponse =
   SetItemPrimaryImageResponses[keyof SetItemPrimaryImageResponses]
+
+export type UploadPreCheckoutConditionImageData = {
+  body: {
+    image: Blob | File
+    item_id: Uuid
+  }
+  path?: never
+  query?: never
+  url: '/borrowings/pre-checkout-condition-image'
+}
+
+export type UploadPreCheckoutConditionImageErrors = {
+  /**
+   * Bad Request
+   */
+  400: Error
+  /**
+   * Unauthorized
+   */
+  401: Error
+  /**
+   * Forbidden
+   */
+  403: Error
+  /**
+   * Item not found
+   */
+  404: Error
+  /**
+   * Internal Server Error
+   */
+  500: Error
+}
+
+export type UploadPreCheckoutConditionImageError =
+  UploadPreCheckoutConditionImageErrors[keyof UploadPreCheckoutConditionImageErrors]
+
+export type UploadPreCheckoutConditionImageResponses = {
+  /**
+   * Condition photo uploaded
+   */
+  201: PreCheckoutConditionImage
+}
+
+export type UploadPreCheckoutConditionImageResponse =
+  UploadPreCheckoutConditionImageResponses[keyof UploadPreCheckoutConditionImageResponses]
 
 export type ListBorrowingImagesData = {
   body?: never
