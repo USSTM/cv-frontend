@@ -23,6 +23,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { useDemo } from '@/demo/DemoContext'
 
 export const Route = createFileRoute('/admin')({
   component: AdminPage,
@@ -37,7 +38,7 @@ type Member = {
   role: 'Member' | 'Group Admin'
 }
 
-const initialMembers: Member[] = [
+export const initialMembers: Member[] = [
   {
     id: 'maya-patel',
     name: 'Maya Patel',
@@ -58,7 +59,7 @@ const initialMembers: Member[] = [
   },
 ]
 
-const catalogItems = [
+export const catalogItems = [
   {
     id: 'macbook-charger',
     title: 'MacBook Charger',
@@ -82,8 +83,14 @@ const catalogItems = [
 const currentRole = 'Group Admin'
 
 function AdminPage() {
+  const {
+    activeGroup,
+    members: memberList,
+    addMember: addDemoMember,
+    items,
+    borrowings,
+  } = useDemo()
   const [view, setView] = useState<AdminView>('members')
-  const [memberList, setMemberList] = useState(initialMembers)
   const [addMemberOpen, setAddMemberOpen] = useState(false)
   const [newMember, setNewMember] = useState({ name: '', email: '' })
 
@@ -93,10 +100,7 @@ function AdminPage() {
 
     if (!name || !email) return
 
-    setMemberList((current) => [
-      ...current,
-      { id: `member-${email.toLowerCase()}`, name, email, role: 'Member' },
-    ])
+    addDemoMember(name, email)
     setNewMember({ name: '', email: '' })
     setAddMemberOpen(false)
   }
@@ -119,7 +123,7 @@ function AdminPage() {
               Active Group
             </p>
             <p className="mt-1 text-sm font-semibold text-(--sea-ink)">
-              Robotics Club
+              {activeGroup}
             </p>
             <Badge className="mt-2 border-sky-200 bg-sky-50 text-sky-800">
               {currentRole}
@@ -136,11 +140,18 @@ function AdminPage() {
             label="Active members"
             value={String(memberList.length)}
           />
-          <SummaryCard icon={Boxes} label="Catalog items" value="68" />
+          <SummaryCard
+            icon={Boxes}
+            label="Catalog items"
+            value={String(items.length)}
+          />
           <SummaryCard
             icon={PackageCheck}
             label="Items currently out"
-            value="7"
+            value={String(
+              borrowings.filter((borrowing) => borrowing.status === 'Active')
+                .length,
+            )}
           />
         </section>
 
@@ -251,7 +262,7 @@ function AdminPage() {
                 </p>
               </div>
               <ul className="divide-y divide-(--line) rounded-xl border border-(--line)">
-                {catalogItems.map((item) => (
+                {items.map((item) => (
                   <li
                     key={item.id}
                     className="flex items-center justify-between gap-4 p-4 sm:p-5"
@@ -261,7 +272,7 @@ function AdminPage() {
                         {item.title}
                       </p>
                       <p className="mt-1 text-sm text-(--sea-ink-soft)">
-                        {item.stock}
+                        {item.stock} available
                       </p>
                     </div>
                     <Badge className={itemTypeStyle(item.type)}>
@@ -278,7 +289,7 @@ function AdminPage() {
               <GroupDetail
                 icon={Building2}
                 label="Group name"
-                value="Robotics Club"
+                value={activeGroup}
               />
               <GroupDetail
                 icon={UsersRound}

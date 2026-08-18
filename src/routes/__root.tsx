@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState } from 'react'
 import Footer from '../components/Footer'
 import Header from '../components/Header'
+import { DemoProvider } from '../demo/DemoContext'
 
 import appCss from '../styles.css?url'
 
@@ -63,6 +64,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body className="min-h-screen bg-[var(--bg-base)] font-sans antialiased text-[var(--sea-ink)] wrap-anywhere selection:bg-[rgba(79,184,178,0.24)]">
         <QueryClientProvider client={queryClient}>
+        <DemoProvider>
           <div className="flex min-h-screen flex-col">
             <Header />
             <div className="flex-1 pb-16">{children}</div>
@@ -81,6 +83,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
           />
           <Scripts />
         </QueryClientProvider>
+        </DemoProvider>
+        <Scripts />
       </body>
     </html>
   )

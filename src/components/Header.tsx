@@ -1,7 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import { LogOut, Menu, UserRound, X } from 'lucide-react'
+import {
+  LogOut,
+  Menu,
+  RotateCcw,
+  ShoppingCart,
+  UserRound,
+  X,
+} from 'lucide-react'
 import ThemeToggle from './ThemeToggle'
+import { useDemo } from '@/demo/DemoContext'
 
 const NAV_ITEMS = [
   { label: 'Home', to: '/' },
@@ -13,6 +21,7 @@ const NAV_ITEMS = [
 ]
 
 export default function Header() {
+  const { cart, resetDemo, session, signOut } = useDemo()
   const [menuOpen, setMenuOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -51,64 +60,88 @@ export default function Header() {
           >
             USSTM Campus Vault
           </Link>
-          <div className="hidden h-10 border-l border-white/30 md:block" />
-          <div className="hidden items-center gap-2 md:flex">
-            {NAV_ITEMS.map((item) => (
-              <Link
-                key={item.label}
-                to={item.to}
-                className="nav-link"
-                activeProps={{
-                  className: 'nav-link is-active',
-                }}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        <div className="hidden items-center gap-4 md:flex">
-          {/* <ThemeToggle /> */}
-          <Link
-            to="/settings"
-            className="nav-link"
-            activeProps={{
-              className: 'nav-link is-active',
-            }}
-          >
-            Settings
-          </Link>
-          <div className="relative" ref={profileRef}>
-            <button
-              type="button"
-              onClick={() => setProfileOpen((open) => !open)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-white transition-colors duration-300 hover:bg-white/10 cursor-pointer"
-              aria-label="Open profile menu"
-              aria-expanded={profileOpen}
-              aria-haspopup="menu"
-            >
-              <UserRound size={22} aria-hidden="true" />
-            </button>
-
-            {profileOpen && (
-              <div
-                className="absolute right-0 top-12 w-40 rounded-lg border border-(--line) bg-(--color-background) py-2 text-(--header-bg) shadow-lg "
-                role="menu"
-              >
+          {session && (
+            <div className="hidden h-10 border-l border-white/30 md:block" />
+          )}
+          {session && (
+            <div className="hidden items-center gap-2 md:flex">
+              {NAV_ITEMS.map((item) => (
                 <Link
-                  to="/login"
-                  className="flex items-center gap-2 px-4 py-2 transition-colors duration-300 hover:bg-(--highlight-blue) hover:text-(--header-bg)"
-                  role="menuitem"
-                  onClick={() => setProfileOpen(false)}
+                  key={item.label}
+                  to={item.to}
+                  className="nav-link"
+                  activeProps={{
+                    className: 'nav-link is-active',
+                  }}
                 >
-                  <LogOut size={18} aria-hidden="true" />
-                  Log out
+                  {item.label}
+                  {item.label === 'Cart' && cart.length > 0 && (
+                    <span className="ml-1 inline-flex min-w-4 justify-center rounded-full bg-white/20 px-1 text-xs">
+                      {cart.reduce((total, entry) => total + entry.quantity, 0)}
+                    </span>
+                  )}
                 </Link>
-              </div>
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
+
+        {session ? (
+          <div className="hidden items-center gap-4 md:flex">
+            {/* <ThemeToggle /> */}
+            <Link
+              to="/settings"
+              className="nav-link"
+              activeProps={{
+                className: 'nav-link is-active',
+              }}
+            >
+              Settings
+            </Link>
+            {/* <button type="button" onClick={resetDemo} className="inline-flex items-center gap-1 rounded-lg px-2 py-2 text-xs font-semibold text-white hover:bg-white/10" title="Reset all in-memory demo data">
+            <RotateCcw aria-hidden="true" size={15} /> Reset demo
+          </button> */}
+            <div className="relative" ref={profileRef}>
+              <button
+                type="button"
+                onClick={() => setProfileOpen((open) => !open)}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-white transition-colors duration-300 hover:bg-white/10 cursor-pointer"
+                aria-label="Open profile menu"
+                aria-expanded={profileOpen}
+                aria-haspopup="menu"
+              >
+                <UserRound size={22} aria-hidden="true" />
+              </button>
+
+              {profileOpen && (
+                <div
+                  className="absolute right-0 top-12 w-40 rounded-lg border border-(--line) bg-(--color-background) py-2 text-(--header-bg) shadow-lg "
+                  role="menu"
+                >
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 px-4 py-2 transition-colors duration-300 hover:bg-(--highlight-blue) hover:text-(--header-bg)"
+                    role="menuitem"
+                    onClick={() => {
+                      signOut()
+                      setProfileOpen(false)
+                    }}
+                  >
+                    <LogOut size={18} aria-hidden="true" />
+                    Log out
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <Link
+            to="/login"
+            className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-white hover:bg-white/10 md:inline-flex"
+          >
+            Log in
+          </Link>
+        )}
 
         <div className="relative md:hidden" ref={menuRef}>
           <button
@@ -121,7 +154,7 @@ export default function Header() {
             {menuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
 
-          {menuOpen && (
+          {menuOpen && session && (
             <div className="absolute right-0 top-12 w-64 rounded-lg border border-(--line) bg-(--color-background) py-2 text-(--header-bg) shadow-lg">
               <div className="px-4 py-2">{/* <ThemeToggle /> */}</div>
               <div className="my-1 border-t border-(--line)" />
@@ -137,9 +170,24 @@ export default function Header() {
                   onClick={() => setMenuOpen(false)}
                 >
                   {item.label}
+                  {item.label === 'Cart' && cart.length > 0 && (
+                    <ShoppingCart
+                      aria-hidden="true"
+                      className="ml-2 inline"
+                      size={14}
+                    />
+                  )}
                 </Link>
               ))}
             </div>
+          )}
+          {!session && (
+            <Link
+              to="/login"
+              className="rounded-lg px-3 py-2 text-sm font-semibold text-white hover:bg-white/10"
+            >
+              Log in
+            </Link>
           )}
         </div>
       </nav>
