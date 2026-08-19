@@ -82,8 +82,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             ]}
           />
           <Scripts />
-        </QueryClientProvider>
+        
         </DemoProvider>
+        </QueryClientProvider>
         <Scripts />
       </body>
     </html>
