@@ -12,8 +12,12 @@ import { useMemo } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { itemTypeClass, useDemo } from '@/demo/DemoContext'
+import { requireAuth } from '@/lib/route-guards'
 
-export const Route = createFileRoute('/cart')({ component: CartPage })
+export const Route = createFileRoute('/cart')({
+  beforeLoad: requireAuth,
+  component: CartPage,
+})
 
 function CartPage() {
   const { cart, activeGroup, updateCartQuantity, removeFromCart } = useDemo()

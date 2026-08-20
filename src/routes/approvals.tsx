@@ -6,8 +6,12 @@ import type { ReactNode } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useDemo } from '@/demo/DemoContext'
+import { requireAuth } from '@/lib/route-guards'
 
-export const Route = createFileRoute('/approvals')({ component: ApprovalsPage })
+export const Route = createFileRoute('/approvals')({
+  beforeLoad: requireAuth,
+  component: ApprovalsPage,
+})
 
 function ApprovalsPage() {
   const { requests, decideRequest } = useDemo()

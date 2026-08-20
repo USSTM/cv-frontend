@@ -8,8 +8,12 @@ import {
   ShoppingCart,
 } from 'lucide-react'
 import { useDemo } from '@/demo/DemoContext'
+import { requireAuth } from '@/lib/route-guards'
 
-export const Route = createFileRoute('/')({ component: HomePage })
+export const Route = createFileRoute('/')({
+  beforeLoad: requireAuth,
+  component: HomePage,
+})
 
 const itemTypes = [
   {

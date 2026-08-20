@@ -13,8 +13,12 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { itemTypeClass, useDemo } from '@/demo/DemoContext'
+import { requireAuth } from '@/lib/route-guards'
 
-export const Route = createFileRoute('/catalog')({ component: CatalogPage })
+export const Route = createFileRoute('/catalog')({
+  beforeLoad: requireAuth,
+  component: CatalogPage,
+})
 
 function CatalogPage() {
   const { activeGroup, items, cart, addToCart } = useDemo()
