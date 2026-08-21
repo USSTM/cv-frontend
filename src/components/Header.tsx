@@ -1,12 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
-import {
-  LogOut,
-  Menu,
-  ShoppingCart,
-  UserRound,
-  X,
-} from 'lucide-react'
+import { Bell, LogOut, Menu, ShoppingCart, UserRound, X } from 'lucide-react'
+import { useUnreadNotificationCountQuery } from '@/api/notification-queries'
 import { useCurrentMemberQuery, useLogoutMutation } from '@/api/session-queries'
 import {
   Select,
@@ -22,6 +17,9 @@ import { canManageActiveGroup, navigationForMember } from '@/lib/member-access'
 export default function Header() {
   const { cart } = useDemo()
   const { data: currentMember } = useCurrentMemberQuery()
+  const { data: unreadNotifications } = useUnreadNotificationCountQuery(
+    Boolean(currentMember),
+  )
   const { activeGroup, groups, selectActiveGroup } = useActiveGroup()
   const logout = useLogoutMutation()
   const navigate = useNavigate()
@@ -33,6 +31,7 @@ export default function Header() {
   const navigation = currentMember
     ? navigationForMember(currentMember, activeGroup)
     : []
+  const unreadCount = unreadNotifications?.unread_count ?? 0
 
   function handleSignOut() {
     logout.mutate(undefined, {
@@ -161,6 +160,7 @@ export default function Header() {
             >
               Settings
             </Link>
+            <NotificationLink unreadCount={unreadCount} />
             {/* <button type="button" onClick={resetDemo} className="inline-flex items-center gap-1 rounded-lg px-2 py-2 text-xs font-semibold text-white hover:bg-white/10" title="Reset all in-memory demo data">
             <RotateCcw aria-hidden="true" size={15} /> Reset demo
           </button> */}
@@ -206,7 +206,11 @@ export default function Header() {
           </Link>
         )}
 
-        <div className="relative md:hidden" ref={menuRef}>
+        <div
+          className="relative flex items-center gap-1 md:hidden"
+          ref={menuRef}
+        >
+          {currentMember && <NotificationLink unreadCount={unreadCount} />}
           <button
             type="button"
             onClick={() => setMenuOpen((open) => !open)}
@@ -285,5 +289,32 @@ export default function Header() {
         </div>
       </nav>
     </header>
+  )
+}
+
+function NotificationLink({ unreadCount }: { unreadCount: number }) {
+  const countLabel = unreadCount > 99 ? '99+' : unreadCount
+
+  return (
+    <Link
+      to="/notifications"
+      className="relative inline-flex h-10 w-10 items-center justify-center rounded-lg text-white transition-colors duration-300 hover:bg-white/10"
+      activeProps={{
+        className:
+          'relative inline-flex h-10 w-10 items-center justify-center rounded-lg bg-white/10 text-white',
+      }}
+      aria-label={
+        unreadCount === 0
+          ? 'Notifications'
+          : `Notifications, ${unreadCount} unread`
+      }
+    >
+      <Bell size={21} aria-hidden="true" />
+      {unreadCount > 0 && (
+        <span className="absolute right-0 top-0 inline-flex min-w-5 translate-x-1/4 -translate-y-1/4 items-center justify-center rounded-full bg-white px-1 text-[11px] font-bold leading-5 text-(--header-bg)">
+          {countLabel}
+        </span>
+      )}
+    </Link>
   )
 }
