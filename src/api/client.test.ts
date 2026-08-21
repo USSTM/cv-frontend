@@ -56,6 +56,41 @@ describe('apiRequest', () => {
     })
   })
 
+  it('refreshes the cookie session and retries a protected request after a 401', async () => {
+    vi.stubGlobal('fetch', fetchMock)
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            error: { code: 'AUTHENTICATION_REQUIRED', message: 'Expired.' },
+          }),
+          { status: 401, headers: { 'Content-Type': 'application/json' } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ message: 'Session refreshed.' }), {
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ id: 'member-1' }), {
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      )
+
+    await expect(apiRequest('/members/me')).resolves.toEqual({ id: 'member-1' })
+
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      new URL('/members/me', 'http://localhost:8080'),
+      new URL('/auth/refresh', 'http://localhost:8080'),
+      new URL('/members/me', 'http://localhost:8080'),
+    ])
+    expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({
+      credentials: 'include',
+      method: 'POST',
+    })
+  })
+
   it('returns undefined for an empty response', async () => {
     vi.stubGlobal('fetch', fetchMock)
     fetchMock.mockResolvedValue(new Response(null, { status: 204 }))

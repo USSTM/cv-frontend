@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import {
   LogOut,
   Menu,
@@ -9,6 +9,7 @@ import {
   X,
 } from 'lucide-react'
 import ThemeToggle from './ThemeToggle'
+import { useCurrentMemberQuery, useLogoutMutation } from '@/api/session-queries'
 import { useDemo } from '@/demo/DemoContext'
 
 const NAV_ITEMS = [
@@ -21,11 +22,20 @@ const NAV_ITEMS = [
 ]
 
 export default function Header() {
-  const { cart, resetDemo, session, signOut } = useDemo()
+  const { cart, resetDemo } = useDemo()
+  const { data: currentMember } = useCurrentMemberQuery()
+  const logout = useLogoutMutation()
+  const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const profileRef = useRef<HTMLDivElement>(null)
+
+  function handleSignOut() {
+    logout.mutate(undefined, {
+      onSuccess: () => navigate({ to: '/login' }),
+    })
+  }
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -60,10 +70,10 @@ export default function Header() {
           >
             USSTM Campus Vault
           </Link>
-          {session && (
+          {currentMember && (
             <div className="hidden h-10 border-l border-white/30 md:block" />
           )}
-          {session && (
+          {currentMember && (
             <div className="hidden items-center gap-2 md:flex">
               {NAV_ITEMS.map((item) => (
                 <Link
@@ -86,7 +96,7 @@ export default function Header() {
           )}
         </div>
 
-        {session ? (
+        {currentMember ? (
           <div className="hidden items-center gap-4 md:flex">
             {/* <ThemeToggle /> */}
             <Link
@@ -123,7 +133,7 @@ export default function Header() {
                     className="flex items-center gap-2 px-4 py-2 transition-colors duration-300 hover:bg-(--highlight-blue) hover:text-(--header-bg)"
                     role="menuitem"
                     onClick={() => {
-                      signOut()
+                      handleSignOut()
                       setProfileOpen(false)
                     }}
                   >
@@ -154,7 +164,7 @@ export default function Header() {
             {menuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
 
-          {menuOpen && session && (
+          {menuOpen && currentMember && (
             <div className="absolute right-0 top-12 w-64 rounded-lg border border-(--line) bg-(--color-background) py-2 text-(--header-bg) shadow-lg">
               <div className="px-4 py-2">{/* <ThemeToggle /> */}</div>
               <div className="my-1 border-t border-(--line)" />
@@ -181,7 +191,7 @@ export default function Header() {
               ))}
             </div>
           )}
-          {!session && (
+          {!currentMember && (
             <Link
               to="/login"
               className="rounded-lg px-3 py-2 text-sm font-semibold text-white hover:bg-white/10"

@@ -5,8 +5,12 @@ import { useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useDemo } from '@/demo/DemoContext'
+import { requireAuth } from '@/lib/route-guards'
 
-export const Route = createFileRoute('/activity')({ component: ActivityPage })
+export const Route = createFileRoute('/activity')({
+  beforeLoad: requireAuth,
+  component: ActivityPage,
+})
 type ActivityView = 'bookings' | 'borrowings' | 'requests'
 
 function ActivityPage() {

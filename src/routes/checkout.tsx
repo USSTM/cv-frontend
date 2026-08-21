@@ -5,9 +5,13 @@ import { useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { itemTypeClass, useDemo } from '@/demo/DemoContext'
+import { requireAuth } from '@/lib/route-guards'
 import type { ItemType } from '@/types/item'
 
-export const Route = createFileRoute('/checkout')({ component: CheckoutPage })
+export const Route = createFileRoute('/checkout')({
+  beforeLoad: requireAuth,
+  component: CheckoutPage,
+})
 
 function CheckoutPage() {
   const { cart, activeGroup, submitCheckout } = useDemo()

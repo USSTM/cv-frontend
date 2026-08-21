@@ -24,8 +24,10 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { useDemo } from '@/demo/DemoContext'
+import { requireAuth } from '@/lib/route-guards'
 
 export const Route = createFileRoute('/admin')({
+  beforeLoad: requireAuth,
   component: AdminPage,
 })
 
