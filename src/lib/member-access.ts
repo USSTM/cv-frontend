@@ -16,6 +16,16 @@ export function hasRole(member: CurrentMember, role: string) {
   return member.roles.some((assignment) => assignment.name === role)
 }
 
+export function canManageActiveGroup(
+  member: CurrentMember,
+  activeGroup: MemberGroup | null,
+) {
+  return (
+    hasRole(member, 'global_admin') ||
+    activeGroup?.roles.includes('group_admin') === true
+  )
+}
+
 export function navigationForMember(
   member: CurrentMember,
   activeGroup: MemberGroup | null,
@@ -26,10 +36,7 @@ export function navigationForMember(
     navigation.push({ label: 'Approvals', to: '/approvals' })
   }
 
-  if (
-    hasRole(member, 'global_admin') ||
-    activeGroup?.roles.includes('group_admin')
-  ) {
+  if (canManageActiveGroup(member, activeGroup)) {
     navigation.push({ label: 'Admin', to: '/admin' })
   }
 

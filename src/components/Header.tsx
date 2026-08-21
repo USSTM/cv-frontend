@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from '@tanstack/react-router'
+import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import {
   LogOut,
   Menu,
@@ -8,9 +8,16 @@ import {
   X,
 } from 'lucide-react'
 import { useCurrentMemberQuery, useLogoutMutation } from '@/api/session-queries'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useDemo } from '@/demo/DemoContext'
 import { useActiveGroup } from '@/lib/active-group'
-import { navigationForMember } from '@/lib/member-access'
+import { canManageActiveGroup, navigationForMember } from '@/lib/member-access'
 
 export default function Header() {
   const { cart } = useDemo()
@@ -18,6 +25,7 @@ export default function Header() {
   const { activeGroup, groups, selectActiveGroup } = useActiveGroup()
   const logout = useLogoutMutation()
   const navigate = useNavigate()
+  const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -30,6 +38,19 @@ export default function Header() {
     logout.mutate(undefined, {
       onSuccess: () => navigate({ to: '/login' }),
     })
+  }
+
+  function handleActiveGroupChange(groupId: string) {
+    const nextGroup = groups.find((group) => group.id === groupId) ?? null
+    selectActiveGroup(groupId)
+
+    if (
+      currentMember &&
+      location.pathname === '/admin' &&
+      !canManageActiveGroup(currentMember, nextGroup)
+    ) {
+      navigate({ to: '/' })
+    }
   }
 
   useEffect(() => {
@@ -99,18 +120,32 @@ export default function Header() {
                 {groups.length === 1 ? (
                   <span title="Active Group">{activeGroup.name}</span>
                 ) : (
-                  <select
-                    aria-label="Active Group"
-                    className="max-w-48 rounded-md border border-white/30 bg-(--header-bg) px-2 py-1.5 text-sm font-semibold text-white"
+                  <Select
                     value={activeGroup.id}
-                    onChange={(event) => selectActiveGroup(event.target.value)}
+                    onValueChange={handleActiveGroupChange}
                   >
-                    {groups.map((group) => (
-                      <option key={group.id} value={group.id}>
-                        {group.name}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger
+                      aria-label="Active Group"
+                      className="h-9 max-w-52 border-white/30 bg-white/10 font-semibold text-white shadow-none hover:bg-white/15 focus-visible:border-white focus-visible:ring-white/30 [&_svg]:text-white/70"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent
+                      align="end"
+                      position="popper"
+                      className="border-(--line) bg-(--color-background) text-(--sea-ink)"
+                    >
+                      {groups.map((group) => (
+                        <SelectItem
+                          key={group.id}
+                          value={group.id}
+                          className="focus:bg-(--highlight-blue) focus:text-(--header-bg)"
+                        >
+                          {group.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 )}
               </label>
             )}
@@ -184,18 +219,31 @@ export default function Header() {
               {groups.length > 1 && activeGroup && (
                 <label className="block px-4 py-2 text-xs font-semibold text-(--sea-ink-soft)">
                   Active Group
-                  <select
-                    aria-label="Active Group"
-                    className="mt-1 w-full rounded-md border border-(--line) bg-white px-2 py-2 text-sm text-(--sea-ink)"
+                  <Select
                     value={activeGroup.id}
-                    onChange={(event) => selectActiveGroup(event.target.value)}
+                    onValueChange={handleActiveGroupChange}
                   >
-                    {groups.map((group) => (
-                      <option key={group.id} value={group.id}>
-                        {group.name}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger
+                      aria-label="Active Group"
+                      className="mt-1 h-10 w-full border-(--line) bg-white font-semibold text-(--sea-ink) shadow-sm focus-visible:border-(--lagoon-deep) focus-visible:ring-[rgba(62,137,137,0.2)]"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent
+                      position="popper"
+                      className="border-(--line) bg-(--color-background) text-(--sea-ink)"
+                    >
+                      {groups.map((group) => (
+                        <SelectItem
+                          key={group.id}
+                          value={group.id}
+                          className="focus:bg-(--highlight-blue) focus:text-(--header-bg)"
+                        >
+                          {group.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </label>
               )}
               <div className="my-1 border-t border-(--line)" />

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { CurrentMember, MemberGroup } from '@/api/generated/types.gen'
-import { activeGroupFor, navigationForMember } from './member-access'
+import {
+  activeGroupFor,
+  canManageActiveGroup,
+  navigationForMember,
+} from './member-access'
 
 const groups: Array<MemberGroup> = [
   { id: 'group-a', name: 'Group A', roles: ['member'] },
@@ -32,5 +36,11 @@ describe('member access', () => {
   it('selects the only group by default and honours a valid selected group', () => {
     expect(activeGroupFor([groups[0]], null)).toEqual(groups[0])
     expect(activeGroupFor(groups, 'group-b')).toEqual(groups[1])
+  })
+
+  it('limits Group Admin access to the active group while Global Admin access remains global', () => {
+    expect(canManageActiveGroup(memberWithRoles('group_admin'), groups[0])).toBe(false)
+    expect(canManageActiveGroup(memberWithRoles('group_admin'), groups[1])).toBe(true)
+    expect(canManageActiveGroup(memberWithRoles('global_admin'), groups[0])).toBe(true)
   })
 })
