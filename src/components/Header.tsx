@@ -126,20 +126,23 @@ export default function Header() {
                   >
                     <SelectTrigger
                       aria-label="Active Group"
-                      className="h-9 max-w-52 border-white/30 bg-white/10 font-semibold text-white shadow-none hover:bg-white/15 focus-visible:border-white focus-visible:ring-white/30 [&_svg]:text-white/70"
+                      className="h-10 max-w-56 cursor-pointer border border-white/25 bg-[rgba(79,184,178,0.16)] px-3 font-semibold text-white shadow-none hover:bg-[rgba(79,184,178,0.26)] focus-visible:border-white focus-visible:ring-[rgba(79,184,178,0.45)] [&_svg]:text-white/80"
+                      style={{ borderRadius: '0.875rem' }}
                     >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent
                       align="end"
                       position="popper"
-                      className="border-(--line) bg-(--color-background) text-(--sea-ink)"
+                      className="border-(--line) bg-(--color-background) p-2 text-(--sea-ink) shadow-xl"
+                      style={{ borderRadius: '1rem' }}
                     >
                       {groups.map((group) => (
                         <SelectItem
                           key={group.id}
                           value={group.id}
-                          className="focus:bg-(--highlight-blue) focus:text-(--header-bg)"
+                          className="cursor-pointer border border-transparent px-2 py-1.5 data-[highlighted]:border-[rgba(79,184,178,0.28)] data-[highlighted]:bg-[rgba(79,184,178,0.16)] data-[highlighted]:text-(--header-bg)"
+                          style={{ borderRadius: '0.75rem' }}
                         >
                           {group.name}
                         </SelectItem>
@@ -225,19 +228,20 @@ export default function Header() {
                   >
                     <SelectTrigger
                       aria-label="Active Group"
-                      className="mt-1 h-10 w-full border-(--line) bg-white font-semibold text-(--sea-ink) shadow-sm focus-visible:border-(--lagoon-deep) focus-visible:ring-[rgba(62,137,137,0.2)]"
+                      className="mt-1 h-11 w-full cursor-pointer !rounded-xl border-(--line) bg-(--foam) px-3 font-semibold text-(--sea-ink) shadow-sm hover:bg-white focus-visible:border-(--lagoon-deep) focus-visible:ring-[rgba(62,137,137,0.2)]"
                     >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent
                       position="popper"
-                      className="border-(--line) bg-(--color-background) text-(--sea-ink)"
+                      className="!rounded-2xl border-(--line) bg-(--color-background) p-2 text-(--sea-ink) shadow-xl"
                     >
                       {groups.map((group) => (
                         <SelectItem
                           key={group.id}
                           value={group.id}
-                          className="focus:bg-(--highlight-blue) focus:text-(--header-bg)"
+                          className="cursor-pointer border border-transparent px-2 py-1.5 data-[highlighted]:border-[rgba(79,184,178,0.28)] data-[highlighted]:bg-[rgba(79,184,178,0.16)] data-[highlighted]:text-(--header-bg)"
+                          style={{ borderRadius: '0.75rem' }}
                         >
                           {group.name}
                         </SelectItem>

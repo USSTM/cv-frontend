@@ -47,5 +47,8 @@ export function activeGroupFor(
   groups: Array<MemberGroup>,
   selectedGroupId: string | null,
 ) {
-  return groups.find((group) => group.id === selectedGroupId) ?? groups[0] ?? null
+  const selectedGroup = groups.find((group) => group.id === selectedGroupId)
+  if (selectedGroup) return selectedGroup
+
+  return groups.length > 0 ? groups[0] : null
 }
