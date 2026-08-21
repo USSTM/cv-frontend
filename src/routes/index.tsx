@@ -8,6 +8,7 @@ import {
   ShoppingCart,
 } from 'lucide-react'
 import { useDemo } from '@/demo/DemoContext'
+import { useActiveGroup } from '@/lib/active-group'
 import { requireAuth } from '@/lib/route-guards'
 
 export const Route = createFileRoute('/')({
@@ -59,7 +60,7 @@ const nextSteps = [
 ]
 
 function HomePage() {
-  const { activeGroup } = useDemo()
+  const { activeGroup } = useActiveGroup()
   return (
     <main className="page-wrap px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
       <section className="grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(18rem,0.72fr)]">
@@ -104,7 +105,7 @@ function HomePage() {
             id="active-group-title"
             className="mt-2 text-xl font-bold text-(--sea-ink)"
           >
-            {activeGroup}
+            {activeGroup?.name ?? 'No Active Group'}
           </h2>
           <p className="mt-3 text-sm leading-6 text-(--sea-ink-soft)">
             Your Cart, Checkout Review, bookings, borrowings, and requests are

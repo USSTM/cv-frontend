@@ -12,6 +12,7 @@ import { useMemo } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { itemTypeClass, useDemo } from '@/demo/DemoContext'
+import { useActiveGroup } from '@/lib/active-group'
 import { requireAuth } from '@/lib/route-guards'
 
 export const Route = createFileRoute('/cart')({
@@ -20,7 +21,8 @@ export const Route = createFileRoute('/cart')({
 })
 
 function CartPage() {
-  const { cart, activeGroup, updateCartQuantity, removeFromCart } = useDemo()
+  const { cart, updateCartQuantity, removeFromCart } = useDemo()
+  const { activeGroup } = useActiveGroup()
   const itemCount = useMemo(
     () => cart.reduce((count, item) => count + item.quantity, 0),
     [cart],
@@ -39,7 +41,7 @@ function CartPage() {
               Review.
             </p>
           </div>
-          <ActiveGroup group={activeGroup} />
+          <ActiveGroup group={activeGroup?.name ?? 'No Active Group'} />
         </div>
         {cart.length > 0 ? (
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">

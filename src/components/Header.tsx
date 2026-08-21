@@ -1,40 +1,56 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from '@tanstack/react-router'
+import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import {
   LogOut,
   Menu,
-  RotateCcw,
   ShoppingCart,
   UserRound,
   X,
 } from 'lucide-react'
-import ThemeToggle from './ThemeToggle'
 import { useCurrentMemberQuery, useLogoutMutation } from '@/api/session-queries'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useDemo } from '@/demo/DemoContext'
-
-const NAV_ITEMS = [
-  { label: 'Home', to: '/' },
-  { label: 'Activity', to: '/activity' },
-  { label: 'Catalog', to: '/catalog' },
-  { label: 'Cart', to: '/cart' },
-  { label: 'Approvals', to: '/approvals' },
-  { label: 'Admin', to: '/admin' },
-]
+import { useActiveGroup } from '@/lib/active-group'
+import { canManageActiveGroup, navigationForMember } from '@/lib/member-access'
 
 export default function Header() {
-  const { cart, resetDemo } = useDemo()
+  const { cart } = useDemo()
   const { data: currentMember } = useCurrentMemberQuery()
+  const { activeGroup, groups, selectActiveGroup } = useActiveGroup()
   const logout = useLogoutMutation()
   const navigate = useNavigate()
+  const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const profileRef = useRef<HTMLDivElement>(null)
+  const navigation = currentMember
+    ? navigationForMember(currentMember, activeGroup)
+    : []
 
   function handleSignOut() {
     logout.mutate(undefined, {
       onSuccess: () => navigate({ to: '/login' }),
     })
+  }
+
+  function handleActiveGroupChange(groupId: string) {
+    const nextGroup = groups.find((group) => group.id === groupId) ?? null
+    selectActiveGroup(groupId)
+
+    if (
+      currentMember &&
+      location.pathname === '/admin' &&
+      !canManageActiveGroup(currentMember, nextGroup)
+    ) {
+      navigate({ to: '/' })
+    }
   }
 
   useEffect(() => {
@@ -75,7 +91,7 @@ export default function Header() {
           )}
           {currentMember && (
             <div className="hidden items-center gap-2 md:flex">
-              {NAV_ITEMS.map((item) => (
+              {navigation.map((item) => (
                 <Link
                   key={item.label}
                   to={item.to}
@@ -98,7 +114,44 @@ export default function Header() {
 
         {currentMember ? (
           <div className="hidden items-center gap-4 md:flex">
-            {/* <ThemeToggle /> */}
+            {activeGroup && (
+              <label className="flex items-center gap-2 text-xs font-semibold text-white/80">
+                <span className="sr-only">Active Group</span>
+                {groups.length === 1 ? (
+                  <span title="Active Group">{activeGroup.name}</span>
+                ) : (
+                  <Select
+                    value={activeGroup.id}
+                    onValueChange={handleActiveGroupChange}
+                  >
+                    <SelectTrigger
+                      aria-label="Active Group"
+                      className="h-10 max-w-56 cursor-pointer border border-white/25 bg-[rgba(79,184,178,0.16)] px-3 font-semibold text-white shadow-none hover:bg-[rgba(79,184,178,0.26)] focus-visible:border-white focus-visible:ring-[rgba(79,184,178,0.45)] [&_svg]:text-white/80"
+                      style={{ borderRadius: '0.875rem' }}
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent
+                      align="end"
+                      position="popper"
+                      className="border-(--line) bg-(--color-background) p-2 text-(--sea-ink) shadow-xl"
+                      style={{ borderRadius: '1rem' }}
+                    >
+                      {groups.map((group) => (
+                        <SelectItem
+                          key={group.id}
+                          value={group.id}
+                          className="cursor-pointer border border-transparent px-2 py-1.5 data-[highlighted]:border-[rgba(79,184,178,0.28)] data-[highlighted]:bg-[rgba(79,184,178,0.16)] data-[highlighted]:text-(--header-bg)"
+                          style={{ borderRadius: '0.75rem' }}
+                        >
+                          {group.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </label>
+            )}
             <Link
               to="/settings"
               className="nav-link"
@@ -166,9 +219,39 @@ export default function Header() {
 
           {menuOpen && currentMember && (
             <div className="absolute right-0 top-12 w-64 rounded-lg border border-(--line) bg-(--color-background) py-2 text-(--header-bg) shadow-lg">
-              <div className="px-4 py-2">{/* <ThemeToggle /> */}</div>
+              {groups.length > 1 && activeGroup && (
+                <label className="block px-4 py-2 text-xs font-semibold text-(--sea-ink-soft)">
+                  Active Group
+                  <Select
+                    value={activeGroup.id}
+                    onValueChange={handleActiveGroupChange}
+                  >
+                    <SelectTrigger
+                      aria-label="Active Group"
+                      className="mt-1 h-11 w-full cursor-pointer !rounded-xl border-(--line) bg-(--foam) px-3 font-semibold text-(--sea-ink) shadow-sm hover:bg-white focus-visible:border-(--lagoon-deep) focus-visible:ring-[rgba(62,137,137,0.2)]"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent
+                      position="popper"
+                      className="!rounded-2xl border-(--line) bg-(--color-background) p-2 text-(--sea-ink) shadow-xl"
+                    >
+                      {groups.map((group) => (
+                        <SelectItem
+                          key={group.id}
+                          value={group.id}
+                          className="cursor-pointer border border-transparent px-2 py-1.5 data-[highlighted]:border-[rgba(79,184,178,0.28)] data-[highlighted]:bg-[rgba(79,184,178,0.16)] data-[highlighted]:text-(--header-bg)"
+                          style={{ borderRadius: '0.75rem' }}
+                        >
+                          {group.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </label>
+              )}
               <div className="my-1 border-t border-(--line)" />
-              {[...NAV_ITEMS].map((item) => (
+              {navigation.map((item) => (
                 <Link
                   key={item.label}
                   to={item.to}

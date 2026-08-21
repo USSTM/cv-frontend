@@ -42,7 +42,6 @@ export type DemoMember = {
 }
 
 type DemoContextValue = {
-  activeGroup: string
   currentMember: DemoMember | null
   session: DemoMember | null
   items: Item[]
@@ -367,7 +366,6 @@ export function DemoProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(
     () => ({
-      activeGroup: 'Computer Science Course Union (CSCU)',
       currentMember,
       session: currentMember,
       items,

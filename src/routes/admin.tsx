@@ -24,6 +24,9 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { useDemo } from '@/demo/DemoContext'
+import { useActiveGroup } from '@/lib/active-group'
+import { useCurrentMemberQuery } from '@/api/session-queries'
+import { hasRole } from '@/lib/member-access'
 import { requireAuth } from '@/lib/route-guards'
 
 export const Route = createFileRoute('/admin')({
@@ -82,16 +85,18 @@ export const catalogItems = [
   },
 ]
 
-const currentRole = 'Group Admin'
-
 function AdminPage() {
   const {
-    activeGroup,
     members: memberList,
     addMember: addDemoMember,
     items,
     borrowings,
   } = useDemo()
+  const { activeGroup } = useActiveGroup()
+  const { data: currentMember } = useCurrentMemberQuery()
+  const currentRole = currentMember && hasRole(currentMember, 'global_admin')
+    ? 'Global Admin'
+    : 'Group Admin'
   const [view, setView] = useState<AdminView>('members')
   const [addMemberOpen, setAddMemberOpen] = useState(false)
   const [newMember, setNewMember] = useState({ name: '', email: '' })
@@ -125,7 +130,7 @@ function AdminPage() {
               Active Group
             </p>
             <p className="mt-1 text-sm font-semibold text-(--sea-ink)">
-              {activeGroup}
+              {activeGroup?.name ?? 'No Active Group'}
             </p>
             <Badge className="mt-2 border-sky-200 bg-sky-50 text-sky-800">
               {currentRole}
@@ -291,7 +296,7 @@ function AdminPage() {
               <GroupDetail
                 icon={Building2}
                 label="Group name"
-                value={activeGroup}
+                value={activeGroup?.name ?? 'No Active Group'}
               />
               <GroupDetail
                 icon={UsersRound}

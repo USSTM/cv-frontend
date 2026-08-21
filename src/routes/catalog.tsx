@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { itemTypeClass, useDemo } from '@/demo/DemoContext'
+import { useActiveGroup } from '@/lib/active-group'
 import { requireAuth } from '@/lib/route-guards'
 
 export const Route = createFileRoute('/catalog')({
@@ -21,7 +22,8 @@ export const Route = createFileRoute('/catalog')({
 })
 
 function CatalogPage() {
-  const { activeGroup, items, cart, addToCart } = useDemo()
+  const { items, cart, addToCart } = useDemo()
+  const { activeGroup } = useActiveGroup()
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('all')
   const [lastAdded, setLastAdded] = useState<string | null>(null)
@@ -47,7 +49,7 @@ function CatalogPage() {
             <p className="mt-2 max-w-2xl text-(--sea-ink-soft)">Browse items available to take, borrow, or request.</p>
           </div>
           <div className="rounded-xl border border-(--line) bg-white px-4 py-3 text-sm shadow-sm">
-            <span className="font-semibold">{activeGroup}</span>
+            <span className="font-semibold">{activeGroup?.name ?? 'No Active Group'}</span>
             <span className="ml-2 text-(--sea-ink-soft)">{cart.reduce((total, item) => total + item.quantity, 0)} in Cart</span>
           </div>
         </div>
