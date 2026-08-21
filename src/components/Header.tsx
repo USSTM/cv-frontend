@@ -3,33 +3,28 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import {
   LogOut,
   Menu,
-  RotateCcw,
   ShoppingCart,
   UserRound,
   X,
 } from 'lucide-react'
-import ThemeToggle from './ThemeToggle'
 import { useCurrentMemberQuery, useLogoutMutation } from '@/api/session-queries'
 import { useDemo } from '@/demo/DemoContext'
-
-const NAV_ITEMS = [
-  { label: 'Home', to: '/' },
-  { label: 'Activity', to: '/activity' },
-  { label: 'Catalog', to: '/catalog' },
-  { label: 'Cart', to: '/cart' },
-  { label: 'Approvals', to: '/approvals' },
-  { label: 'Admin', to: '/admin' },
-]
+import { useActiveGroup } from '@/lib/active-group'
+import { navigationForMember } from '@/lib/member-access'
 
 export default function Header() {
-  const { cart, resetDemo } = useDemo()
+  const { cart } = useDemo()
   const { data: currentMember } = useCurrentMemberQuery()
+  const { activeGroup, groups, selectActiveGroup } = useActiveGroup()
   const logout = useLogoutMutation()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const profileRef = useRef<HTMLDivElement>(null)
+  const navigation = currentMember
+    ? navigationForMember(currentMember, activeGroup)
+    : []
 
   function handleSignOut() {
     logout.mutate(undefined, {
@@ -75,7 +70,7 @@ export default function Header() {
           )}
           {currentMember && (
             <div className="hidden items-center gap-2 md:flex">
-              {NAV_ITEMS.map((item) => (
+              {navigation.map((item) => (
                 <Link
                   key={item.label}
                   to={item.to}
@@ -98,7 +93,27 @@ export default function Header() {
 
         {currentMember ? (
           <div className="hidden items-center gap-4 md:flex">
-            {/* <ThemeToggle /> */}
+            {activeGroup && (
+              <label className="flex items-center gap-2 text-xs font-semibold text-white/80">
+                <span className="sr-only">Active Group</span>
+                {groups.length === 1 ? (
+                  <span title="Active Group">{activeGroup.name}</span>
+                ) : (
+                  <select
+                    aria-label="Active Group"
+                    className="max-w-48 rounded-md border border-white/30 bg-(--header-bg) px-2 py-1.5 text-sm font-semibold text-white"
+                    value={activeGroup.id}
+                    onChange={(event) => selectActiveGroup(event.target.value)}
+                  >
+                    {groups.map((group) => (
+                      <option key={group.id} value={group.id}>
+                        {group.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </label>
+            )}
             <Link
               to="/settings"
               className="nav-link"
@@ -166,9 +181,25 @@ export default function Header() {
 
           {menuOpen && currentMember && (
             <div className="absolute right-0 top-12 w-64 rounded-lg border border-(--line) bg-(--color-background) py-2 text-(--header-bg) shadow-lg">
-              <div className="px-4 py-2">{/* <ThemeToggle /> */}</div>
+              {groups.length > 1 && activeGroup && (
+                <label className="block px-4 py-2 text-xs font-semibold text-(--sea-ink-soft)">
+                  Active Group
+                  <select
+                    aria-label="Active Group"
+                    className="mt-1 w-full rounded-md border border-(--line) bg-white px-2 py-2 text-sm text-(--sea-ink)"
+                    value={activeGroup.id}
+                    onChange={(event) => selectActiveGroup(event.target.value)}
+                  >
+                    {groups.map((group) => (
+                      <option key={group.id} value={group.id}>
+                        {group.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
               <div className="my-1 border-t border-(--line)" />
-              {[...NAV_ITEMS].map((item) => (
+              {navigation.map((item) => (
                 <Link
                   key={item.label}
                   to={item.to}
