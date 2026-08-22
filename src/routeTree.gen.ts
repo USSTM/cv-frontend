@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CatalogRouteImport } from './routes/catalog'
@@ -22,6 +23,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -74,6 +80,7 @@ export interface FileRoutesByFullPath {
   '/catalog': typeof CatalogRoute
   '/checkout': typeof CheckoutRoute
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRoute
 }
 export interface FileRoutesByTo {
@@ -85,6 +92,7 @@ export interface FileRoutesByTo {
   '/catalog': typeof CatalogRoute
   '/checkout': typeof CheckoutRoute
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRoute
 }
 export interface FileRoutesById {
@@ -97,6 +105,7 @@ export interface FileRoutesById {
   '/catalog': typeof CatalogRoute
   '/checkout': typeof CheckoutRoute
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRoute
 }
 export interface FileRouteTypes {
@@ -110,6 +119,7 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/checkout'
     | '/login'
+    | '/notifications'
     | '/settings'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -121,6 +131,7 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/checkout'
     | '/login'
+    | '/notifications'
     | '/settings'
   id:
     | '__root__'
@@ -132,6 +143,7 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/checkout'
     | '/login'
+    | '/notifications'
     | '/settings'
   fileRoutesById: FileRoutesById
 }
@@ -144,6 +156,7 @@ export interface RootRouteChildren {
   CatalogRoute: typeof CatalogRoute
   CheckoutRoute: typeof CheckoutRoute
   LoginRoute: typeof LoginRoute
+  NotificationsRoute: typeof NotificationsRoute
   SettingsRoute: typeof SettingsRoute
 }
 
@@ -154,6 +167,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -224,6 +244,7 @@ const rootRouteChildren: RootRouteChildren = {
   CatalogRoute: CatalogRoute,
   CheckoutRoute: CheckoutRoute,
   LoginRoute: LoginRoute,
+  NotificationsRoute: NotificationsRoute,
   SettingsRoute: SettingsRoute,
 }
 export const routeTree = rootRouteImport

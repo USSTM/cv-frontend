@@ -36,6 +36,7 @@ export function useLogoutMutation() {
     mutationFn: logout,
     onSuccess: () => {
       queryClient.removeQueries({ queryKey: currentMemberQueryKey })
+      queryClient.removeQueries({ queryKey: ['notifications'] })
     },
   })
 }
