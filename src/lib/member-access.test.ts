@@ -22,15 +22,31 @@ function memberWithRoles(...roles: Array<string>): CurrentMember {
 
 describe('member access', () => {
   it('adapts navigation for each Campus Vault role', () => {
-    expect(navigationForMember(memberWithRoles('member'), groups[0]).map((item) => item.label)).toEqual([
-      'Home',
-      'Activity',
-      'Catalog',
-      'Cart',
-    ])
-    expect(navigationForMember(memberWithRoles('group_admin'), groups[1]).map((item) => item.label)).toContain('Admin')
-    expect(navigationForMember(memberWithRoles('approver'), groups[0]).map((item) => item.label)).toContain('Approvals')
-    expect(navigationForMember(memberWithRoles('global_admin'), groups[0]).map((item) => item.label)).toContain('Admin')
+    expect(
+      navigationForMember(memberWithRoles('member'), groups[0]).map(
+        (item) => item.label,
+      ),
+    ).toEqual(['Home', 'Activity', 'Catalog', 'Cart'])
+    expect(
+      navigationForMember(memberWithRoles('group_admin'), groups[1]).map(
+        (item) => item.label,
+      ),
+    ).toContain('Admin')
+    expect(
+      navigationForMember(memberWithRoles('group_admin'), groups[1]).map(
+        (item) => item.label,
+      ),
+    ).not.toContain('Approvals')
+    expect(
+      navigationForMember(memberWithRoles('approver'), groups[0]).map(
+        (item) => item.label,
+      ),
+    ).toContain('Approvals')
+    expect(
+      navigationForMember(memberWithRoles('global_admin'), groups[0]).map(
+        (item) => item.label,
+      ),
+    ).toContain('Admin')
   })
 
   it('selects the only group by default and honours a valid selected group', () => {
@@ -39,8 +55,14 @@ describe('member access', () => {
   })
 
   it('limits Group Admin access to the active group while Global Admin access remains global', () => {
-    expect(canManageActiveGroup(memberWithRoles('group_admin'), groups[0])).toBe(false)
-    expect(canManageActiveGroup(memberWithRoles('group_admin'), groups[1])).toBe(true)
-    expect(canManageActiveGroup(memberWithRoles('global_admin'), groups[0])).toBe(true)
+    expect(
+      canManageActiveGroup(memberWithRoles('group_admin'), groups[0]),
+    ).toBe(false)
+    expect(
+      canManageActiveGroup(memberWithRoles('group_admin'), groups[1]),
+    ).toBe(true)
+    expect(
+      canManageActiveGroup(memberWithRoles('global_admin'), groups[0]),
+    ).toBe(true)
   })
 })
