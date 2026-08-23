@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import { Bell, LogOut, Menu, ShoppingCart, UserRound, X } from 'lucide-react'
+import { useCartQuery } from '@/api/catalog-queries'
 import { useUnreadNotificationCountQuery } from '@/api/notification-queries'
 import { useCurrentMemberQuery, useLogoutMutation } from '@/api/session-queries'
 import {
@@ -10,17 +11,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useDemo } from '@/demo/DemoContext'
 import { useActiveGroup } from '@/lib/active-group'
 import { canManageActiveGroup, navigationForMember } from '@/lib/member-access'
 
 export default function Header() {
-  const { cart } = useDemo()
   const { data: currentMember } = useCurrentMemberQuery()
   const { data: unreadNotifications } = useUnreadNotificationCountQuery(
     Boolean(currentMember),
   )
   const { activeGroup, groups, selectActiveGroup } = useActiveGroup()
+  const { data: cart = [] } = useCartQuery(activeGroup?.id)
   const logout = useLogoutMutation()
   const navigate = useNavigate()
   const location = useLocation()
@@ -32,6 +32,7 @@ export default function Header() {
     ? navigationForMember(currentMember, activeGroup)
     : []
   const unreadCount = unreadNotifications?.unread_count ?? 0
+  const cartCount = cart.reduce((total, item) => total + item.quantity, 0)
 
   function handleSignOut() {
     logout.mutate(undefined, {
@@ -100,9 +101,9 @@ export default function Header() {
                   }}
                 >
                   {item.label}
-                  {item.label === 'Cart' && cart.length > 0 && (
+                  {item.label === 'Cart' && cartCount > 0 && (
                     <span className="ml-1 inline-flex min-w-4 justify-center rounded-full bg-white/20 px-1 text-xs">
-                      {cart.reduce((total, entry) => total + entry.quantity, 0)}
+                      {cartCount}
                     </span>
                   )}
                 </Link>
@@ -267,7 +268,7 @@ export default function Header() {
                   onClick={() => setMenuOpen(false)}
                 >
                   {item.label}
-                  {item.label === 'Cart' && cart.length > 0 && (
+                  {item.label === 'Cart' && cartCount > 0 && (
                     <ShoppingCart
                       aria-hidden="true"
                       className="ml-2 inline"
