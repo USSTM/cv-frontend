@@ -27,6 +27,22 @@ type ApprovalBody = {
   return_location: string
 }
 type View = 'pending' | 'all'
+type DisplayRequest = RequestItemResponse & {
+  sample?: boolean
+}
+
+const SAMPLE_REQUEST: DisplayRequest = {
+  id: 'frontend-sample-request',
+  user_id: 'sample-member',
+  group_id: 'sample-group',
+  item_id: 'sample-item',
+  quantity: 1,
+  status: 'pending',
+  item_name: 'DSLR Camera Kit',
+  requester_email: 'jordan.lee@example.com',
+  group_name: 'Student Media',
+  sample: true,
+}
 
 function ApprovalsPage() {
   const pending = usePendingRequestsQuery()
@@ -38,7 +54,10 @@ function ApprovalsPage() {
   const [openId, setOpenId] = useState<string | null>(null)
   const [approvingId, setApprovingId] = useState<string | null>(null)
   const activeQuery = view === 'pending' ? pending : allRequests
-  const requests = activeQuery.data?.data ?? []
+  const requests: DisplayRequest[] = [
+    ...(activeQuery.data?.data ?? []),
+    SAMPLE_REQUEST,
+  ]
   const ownAvailability = useMemo(
     () =>
       availability.data?.filter((entry) => entry.user_id === member?.id) ?? [],
@@ -165,7 +184,7 @@ function RequestRow({
   onStart,
   onCancel,
 }: {
-  request: RequestItemResponse
+  request: DisplayRequest
   open: boolean
   approving: boolean
   pending: boolean
@@ -197,15 +216,22 @@ function RequestRow({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="font-semibold text-(--sea-ink)">
-              Request {request.id}
+              {request.item_name ?? `Request ${request.id}`}
             </h3>
             <Badge className={statusClass(request.status)}>
               {request.status}
             </Badge>
           </div>
           <p className="mt-1 break-all text-sm text-(--sea-ink-soft)">
-            Item {request.item_id} · Qty. {request.quantity}
+            {request.requester_email ?? `Member ${request.user_id}`} ·{' '}
+            {request.group_name ?? `Group ${request.group_id}`} · Qty.{' '}
+            {request.quantity}
           </p>
+          {request.sample && (
+            <p className="mt-1 text-xs font-medium text-(--sea-ink-soft)">
+              Frontend-only sample
+            </p>
+          )}
         </div>
       </button>
       {open && (
@@ -215,17 +241,21 @@ function RequestRow({
               <div>
                 <dt className="font-semibold">Requesting member</dt>
                 <dd className="mt-1 break-all text-(--sea-ink-soft)">
-                  {request.user_id}
+                  {request.requester_email ?? request.user_id}
                 </dd>
               </div>
               <div>
                 <dt className="font-semibold">Group</dt>
                 <dd className="mt-1 break-all text-(--sea-ink-soft)">
-                  {request.group_id}
+                  {request.group_name ?? request.group_id}
                 </dd>
               </div>
             </dl>
-            {!pending ? (
+            {request.sample ? (
+              <p className="rounded-xl border border-(--line) bg-white p-4 text-sm text-(--sea-ink-soft)">
+                This is a frontend-only sample and cannot be approved or denied.
+              </p>
+            ) : !pending ? (
               <p className="rounded-xl border border-(--line) bg-white p-4 text-sm text-(--sea-ink-soft)">
                 This Request has already been {request.status}.
               </p>

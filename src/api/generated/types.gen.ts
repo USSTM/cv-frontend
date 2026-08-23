@@ -396,6 +396,18 @@ export type RequestItemResponse = {
   status: RequestStatus
   reviewed_by?: Uuid
   reviewed_at?: string | null
+  /**
+   * Item name, included in approval request lists
+   */
+  item_name?: string
+  /**
+   * Requester email, included in approval request lists
+   */
+  requester_email?: string
+  /**
+   * Group name, included in approval request lists
+   */
+  group_name?: string
 }
 
 export type ReviewRequestRequest = {
