@@ -339,11 +339,12 @@ function BorrowingDetails({
             <label className="text-sm font-semibold">
               Due date
               <Input
-                className="mt-2 bg-white"
+                className="mt-2 h-11 cursor-pointer border-(--line) bg-(--sand) text-(--sea-ink) [color-scheme:light]"
                 type="date"
                 value={dueDate}
                 min={new Date().toISOString().slice(0, 10)}
                 onChange={(event) => onDueDateChange(event.target.value)}
+                onClick={(event) => event.currentTarget.showPicker?.()}
               />
             </label>
             <label className="text-sm font-semibold">
