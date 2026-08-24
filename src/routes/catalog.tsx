@@ -5,7 +5,7 @@ import {
   useLocation,
   useNavigate,
 } from '@tanstack/react-router'
-import { Check, ImageOff, ShoppingCart } from 'lucide-react'
+import { ArrowRight, Check, ImageOff, ShoppingCart } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import {
@@ -184,21 +184,9 @@ function CatalogPage() {
                         : `${item.stock} available`}
                     </p>
                   </Link>
-                  <div className="flex gap-3 px-6 pb-6">
+                  <div className="border-t border-(--line) bg-[rgba(79,184,178,0.05)] px-6 py-5">
                     <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() =>
-                        navigate({
-                          to: '/catalog/$itemId',
-                          params: { itemId: item.id },
-                        })
-                      }
-                    >
-                      View details
-                    </Button>
-                    <Button
-                      className="btn-inv flex-1"
+                      className="btn-inv min-h-10 w-full whitespace-normal"
                       disabled={
                         !activeGroup ||
                         unavailable ||
@@ -222,6 +210,19 @@ function CatalogPage() {
                               ? `Add another (${cartItem.quantity} selected)`
                               : 'Add to Cart'}
                     </Button>
+                    <button
+                      type="button"
+                      className="mx-auto mt-3 inline-flex w-full items-center justify-center gap-1 text-sm font-semibold text-(--lagoon-deep) transition-colors hover:text-(--header-bg)"
+                      onClick={() =>
+                        navigate({
+                          to: '/catalog/$itemId',
+                          params: { itemId: item.id },
+                        })
+                      }
+                    >
+                      View item details{' '}
+                      <ArrowRight aria-hidden="true" size={15} />
+                    </button>
                   </div>
                 </article>
               )
