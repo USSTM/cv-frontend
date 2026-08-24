@@ -1,9 +1,23 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Check, PackageCheck, ShieldCheck, X } from 'lucide-react'
+import {
+  CalendarDays,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  PackageCheck,
+  ShieldCheck,
+  X,
+} from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 
-import { useAvailabilityQuery } from '@/api/availability-queries'
+import {
+  useAvailabilityQuery,
+  useCreateAvailabilitiesMutation,
+  useDeleteAvailabilityMutation,
+  useTimeSlotsQuery,
+} from '@/api/availability-queries'
+import { useBookingsQuery } from '@/api/booking-queries'
 import {
   useAllRequestsQuery,
   usePendingRequestsQuery,
@@ -49,6 +63,7 @@ function ApprovalsPage() {
   const [view, setView] = useState<View>('pending')
   const allRequests = useAllRequestsQuery(view === 'all')
   const availability = useAvailabilityQuery()
+  const bookings = useBookingsQuery()
   const { data: member } = useCurrentMemberQuery()
   const review = useReviewRequestMutation()
   const [openId, setOpenId] = useState<string | null>(null)
@@ -62,6 +77,13 @@ function ApprovalsPage() {
     () =>
       availability.data?.filter((entry) => entry.user_id === member?.id) ?? [],
     [availability.data, member?.id],
+  )
+  const referencedAvailabilityIds = useMemo(
+    () =>
+      new Set(
+        bookings.data?.data.map((booking) => booking.availability_id) ?? [],
+      ),
+    [bookings.data],
   )
 
   function submit(id: string, body: ApprovalBody | { status: 'denied' }) {
@@ -88,6 +110,10 @@ function ApprovalsPage() {
             Review Requests and schedule approved item collection.
           </p>
         </div>
+        <AvailabilityPanel
+          availability={ownAvailability}
+          referencedAvailabilityIds={referencedAvailabilityIds}
+        />
         <section className="island-shell overflow-hidden rounded-2xl">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-(--line) px-5 py-4 sm:px-6">
             <div>
@@ -168,6 +194,330 @@ function ApprovalsPage() {
       </section>
     </main>
   )
+}
+
+function AvailabilityPanel({
+  availability,
+  referencedAvailabilityIds,
+}: {
+  availability: Array<{
+    id: string
+    time_slot_id: string
+    date: string
+    start_time: string
+    end_time: string
+  }>
+  referencedAvailabilityIds: Set<string>
+}) {
+  const [date, setDate] = useState(() => dateValue(new Date()))
+  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()))
+  const [startTime, setStartTime] = useState('')
+  const [endTime, setEndTime] = useState('')
+  const [showExtendedHours, setShowExtendedHours] = useState(false)
+  const timeSlots = useTimeSlotsQuery()
+  const createAvailability = useCreateAvailabilitiesMutation()
+  const deleteAvailability = useDeleteAvailabilityMutation()
+  const days = useMemo(
+    () => Array.from({ length: 7 }, (_, index) => addDays(weekStart, index)),
+    [weekStart],
+  )
+  const selectedSlots = availability.filter((slot) => slot.date === date)
+  const visibleTimeSlots = useMemo(
+    () =>
+      (timeSlots.data ?? []).filter(
+        (slot) =>
+          showExtendedHours ||
+          (timeValue(slot.start_time) >= 7 * 60 &&
+            timeValue(slot.end_time) <= 21 * 60),
+      ),
+    [showExtendedHours, timeSlots.data],
+  )
+  const startMinutes = startTime ? timeValue(startTime) : null
+  const endMinutes = endTime ? timeValue(endTime) : null
+  const hasValidRange =
+    startMinutes !== null &&
+    endMinutes !== null &&
+    startMinutes < endMinutes &&
+    startMinutes % 15 === 0 &&
+    endMinutes % 15 === 0
+  const timeSlotIds = useMemo(
+    () =>
+      !hasValidRange
+        ? []
+        : visibleTimeSlots
+            .filter(
+              (slot) =>
+                timeValue(slot.start_time) >= startMinutes &&
+                timeValue(slot.end_time) <= endMinutes,
+            )
+            .filter(
+              (slot) =>
+                !selectedSlots.some(
+                  (availabilitySlot) =>
+                    availabilitySlot.time_slot_id === slot.id,
+                ),
+            )
+            .map((slot) => slot.id),
+    [endMinutes, hasValidRange, selectedSlots, startMinutes, visibleTimeSlots],
+  )
+
+  function addAvailability() {
+    if (!date || timeSlotIds.length === 0) return
+    createAvailability.mutate(
+      { date, timeSlotIds },
+      {
+        onSuccess: () => {
+          setStartTime('')
+          setEndTime('')
+        },
+      },
+    )
+  }
+
+  return (
+    <section className="island-shell rounded-2xl p-5 sm:p-6">
+      <div className="flex items-start gap-3">
+        <CalendarDays
+          aria-hidden="true"
+          className="mt-0.5 text-(--lagoon-deep)"
+          size={20}
+        />
+        <div>
+          <h2 className="text-lg font-semibold">My availability</h2>
+          <p className="mt-1 text-sm text-(--sea-ink-soft)">
+            Choose a date to view or add collection windows.
+          </p>
+        </div>
+      </div>
+      <div className="mt-4 rounded-xl border border-(--line) bg-(--foam) p-3">
+        <div className="flex items-center justify-between">
+          <Button
+            type="button"
+            variant="outline"
+            className="size-8 p-0"
+            onClick={() => setWeekStart((current) => addDays(current, -7))}
+            aria-label="Previous week"
+          >
+            <ChevronLeft aria-hidden="true" size={17} />
+          </Button>
+          <p className="text-sm font-semibold">
+            {formatWeekRange(days[0]!, days[6]!)}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            className="size-8 p-0"
+            onClick={() => setWeekStart((current) => addDays(current, 7))}
+            aria-label="Next week"
+          >
+            <ChevronRight aria-hidden="true" size={17} />
+          </Button>
+        </div>
+        <div className="mt-3 grid grid-cols-7 gap-1">
+          {days.map((day) => {
+            const value = dateValue(day)
+            const selected = value === date
+            const available = availability.some((slot) => slot.date === value)
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setDate(value)}
+                aria-pressed={selected}
+                className={`relative flex min-h-14 flex-col items-center justify-center rounded-lg text-xs font-semibold ${selected ? 'bg-(--lagoon-deep) text-white' : 'bg-white text-(--sea-ink)'}`}
+              >
+                <span className="text-[10px] uppercase opacity-70">
+                  {new Intl.DateTimeFormat('en-US', {
+                    weekday: 'short',
+                  }).format(day)}
+                </span>
+                <span className="mt-1 text-sm">{day.getDate()}</span>
+                {available && (
+                  <span
+                    className={`mt-1 size-1.5 rounded-full ${selected ? 'bg-white' : 'bg-(--lagoon-deep)'}`}
+                  />
+                )}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+      <div className="mt-4 rounded-xl border border-(--line) bg-white p-4">
+        <div className="flex items-baseline justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold tracking-wide text-(--sea-ink-soft) uppercase">
+              Schedule for
+            </p>
+            <h3 className="mt-1 font-semibold">
+              {formatAvailabilityDate(date)}
+            </h3>
+          </div>
+          <p className="text-xs text-(--sea-ink-soft)">
+            {selectedSlots.length}{' '}
+            {selectedSlots.length === 1 ? 'window' : 'windows'} added
+          </p>
+        </div>
+        <div className="mt-3">
+          <p className="text-xs font-semibold text-(--sea-ink-soft)">
+            Current availability
+          </p>
+          {selectedSlots.length ? (
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {selectedSlots.map((slot) => (
+                <span
+                  key={slot.id}
+                  className={`inline-flex items-center gap-1 rounded-full py-1 pl-2.5 pr-1 text-xs font-semibold ${referencedAvailabilityIds.has(slot.id) ? 'bg-violet-100 text-violet-800' : 'bg-[rgba(79,184,178,0.16)] text-(--lagoon-deep)'}`}
+                >
+                  {formatAvailabilityTime(slot.start_time)}–
+                  {formatAvailabilityTime(slot.end_time)}
+                  {referencedAvailabilityIds.has(slot.id) ? (
+                    <span className="ml-1 text-[10px]">Booked</span>
+                  ) : (
+                    <button
+                      type="button"
+                      className="ml-0.5 inline-flex size-5 items-center justify-center rounded-full hover:bg-[rgba(79,184,178,0.28)]"
+                      onClick={() => deleteAvailability.mutate(slot.id)}
+                      disabled={deleteAvailability.isPending}
+                      aria-label={`Remove ${formatAvailabilityTime(slot.start_time)} availability`}
+                    >
+                      <X aria-hidden="true" size={13} />
+                    </button>
+                  )}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-1 text-sm text-(--sea-ink-soft)">
+              No collection windows added.
+            </p>
+          )}
+        </div>
+        {timeSlots.isPending ? (
+          <p className="mt-2 text-sm text-(--sea-ink-soft)">
+            Loading time slots…
+          </p>
+        ) : (
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <label className="text-sm font-medium">
+              Start time
+              <input
+                type="time"
+                step="900"
+                min={showExtendedHours ? undefined : '07:00'}
+                max={showExtendedHours ? undefined : '21:00'}
+                value={startTime}
+                onChange={(event) => setStartTime(event.target.value)}
+                className="mt-1 block h-11 w-full rounded-lg border border-(--line) bg-white px-3"
+              />
+            </label>
+            <label className="text-sm font-medium">
+              End time
+              <input
+                type="time"
+                step="900"
+                min={showExtendedHours ? undefined : '07:00'}
+                max={showExtendedHours ? undefined : '21:00'}
+                value={endTime}
+                onChange={(event) => setEndTime(event.target.value)}
+                className="mt-1 block h-11 w-full rounded-lg border border-(--line) bg-white px-3"
+              />
+            </label>
+          </div>
+        )}
+        {startTime && endTime && !hasValidRange && (
+          <p className="mt-3 text-sm text-red-700">
+            Choose an end time after the start time, using 15-minute intervals.
+          </p>
+        )}
+        {hasValidRange && (
+          <p className="mt-3 text-sm text-(--sea-ink-soft)">
+            {timeSlotIds.length > 0
+              ? `${timeSlotIds.length} collection ${timeSlotIds.length === 1 ? 'window will' : 'windows will'} be added.`
+              : 'All collection windows in this range have already been added.'}
+          </p>
+        )}
+        <button
+          type="button"
+          className="mt-3 text-xs font-semibold text-(--lagoon-deep)"
+          onClick={() => setShowExtendedHours((current) => !current)}
+        >
+          {showExtendedHours ? 'Filter to 7am–9pm' : 'Show extended hours'}
+        </button>
+        <div className="mt-3 flex justify-end">
+          <Button
+            type="button"
+            className="btn-inv"
+            disabled={
+              !date ||
+              !hasValidRange ||
+              timeSlotIds.length === 0 ||
+              createAvailability.isPending
+            }
+            onClick={addAvailability}
+          >
+            {createAvailability.isPending
+              ? 'Adding…'
+              : `Add ${timeSlotIds.length || ''} ${timeSlotIds.length === 1 ? 'collection window' : 'collection windows'}`}
+          </Button>
+        </div>
+      </div>
+      {createAvailability.error && (
+        <p role="alert" className="mt-3 text-sm text-red-700">
+          {createAvailability.error.message}
+        </p>
+      )}
+      {deleteAvailability.error && (
+        <p role="alert" className="mt-3 text-sm text-red-700">
+          {deleteAvailability.error.message}
+        </p>
+      )}
+    </section>
+  )
+}
+
+function formatAvailabilityDate(value: string) {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date(`${value}T00:00:00`))
+}
+
+function formatAvailabilityTime(value: string) {
+  return new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(`1970-01-01T${value}`))
+}
+
+function timeValue(value: string) {
+  const [hours, minutes] = value.split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+function dateValue(value: Date) {
+  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`
+}
+
+function startOfWeek(value: Date) {
+  const result = new Date(value)
+  result.setHours(0, 0, 0, 0)
+  result.setDate(result.getDate() - result.getDay())
+  return result
+}
+
+function addDays(value: Date, days: number) {
+  const result = new Date(value)
+  result.setDate(result.getDate() + days)
+  return result
+}
+
+function formatWeekRange(start: Date, end: Date) {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+  })
+  return `${formatter.format(start)}–${new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(end)}`
 }
 
 function RequestRow({
@@ -318,12 +668,14 @@ function ApprovalForm({
   onApprove: (body: ApprovalBody) => void
   onCancel: () => void
 }) {
+  const [availabilityId, setAvailabilityId] = useState('')
+
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
     onApprove({
       status: 'approved',
-      availability_id: String(form.get('availability_id')),
+      availability_id: availabilityId,
       pickup_location: String(form.get('pickup_location')),
       return_location: String(form.get('return_location')),
     })
@@ -343,7 +695,9 @@ function ApprovalForm({
           <select
             required
             name="availability_id"
-            disabled={isSubmitting || availability.length === 0}
+            value={availabilityId}
+            onChange={(event) => setAvailabilityId(event.target.value)}
+            disabled={isSubmitting}
             className="mt-1 w-full rounded-lg border border-(--line) bg-white px-3 py-2"
           >
             <option value="">Select a collection window</option>
@@ -354,11 +708,6 @@ function ApprovalForm({
             ))}
           </select>
         </label>
-        {availability.length === 0 && (
-          <p className="text-sm text-red-700">
-            Add an availability window before approving a Request.
-          </p>
-        )}
         <label className="block text-sm font-medium">
           Pickup location
           <input
@@ -389,7 +738,7 @@ function ApprovalForm({
         <Button
           type="submit"
           className="btn-inv w-full"
-          disabled={isSubmitting || availability.length === 0}
+          disabled={isSubmitting || !availabilityId}
         >
           <Check aria-hidden="true" size={16} />
           {isSubmitting ? 'Saving…' : 'Confirm approval'}

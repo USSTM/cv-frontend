@@ -99,4 +99,15 @@ describe('apiRequest', () => {
       apiRequest<void>('/auth/logout', { method: 'POST' }),
     ).resolves.toBeUndefined()
   })
+
+  it('accepts a successful plain-text response', async () => {
+    vi.stubGlobal('fetch', fetchMock)
+    fetchMock.mockResolvedValue(
+      new Response('Availability created.', { status: 201 }),
+    )
+
+    await expect(apiRequest('/availability', { method: 'POST' })).resolves.toBe(
+      'Availability created.',
+    )
+  })
 })
