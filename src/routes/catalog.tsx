@@ -1,4 +1,10 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
+import {
+  Link,
+  Outlet,
+  createFileRoute,
+  useLocation,
+  useNavigate,
+} from '@tanstack/react-router'
 import { Check, ImageOff, ShoppingCart } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
@@ -24,11 +30,24 @@ import { requireAuth } from '@/lib/route-guards'
 
 export const Route = createFileRoute('/catalog')({
   beforeLoad: requireAuth,
-  component: CatalogPage,
+  component: CatalogRoute,
 })
+
+function CatalogRoute() {
+  const location = useLocation()
+
+  // This route is also the parent for /catalog/$itemId. Render the child
+  // route instead of the Catalog list when an item detail URL is matched.
+  if (location.pathname !== '/catalog') {
+    return <Outlet />
+  }
+
+  return <CatalogPage />
+}
 
 function CatalogPage() {
   const { activeGroup } = useActiveGroup()
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [type, setType] = useState<ItemType | undefined>()
   const [inStock, setInStock] = useState(false)
@@ -165,9 +184,21 @@ function CatalogPage() {
                         : `${item.stock} available`}
                     </p>
                   </Link>
-                  <div className="px-6 pb-6">
+                  <div className="flex gap-3 px-6 pb-6">
                     <Button
-                      className="btn-inv w-full"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() =>
+                        navigate({
+                          to: '/catalog/$itemId',
+                          params: { itemId: item.id },
+                        })
+                      }
+                    >
+                      View details
+                    </Button>
+                    <Button
+                      className="btn-inv flex-1"
                       disabled={
                         !activeGroup ||
                         unavailable ||

@@ -52,7 +52,7 @@ function ItemDetailPage() {
   const isAdding = addToCart.isPending
   function addItem() {
     if (!activeGroup) return
-    addToCart.mutate({ groupId: activeGroup.id, itemId: item.id, quantity: 1 })
+    addToCart.mutate({ groupId: activeGroup.id, itemId, quantity: 1 })
   }
 
   return (
