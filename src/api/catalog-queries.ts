@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { CartItemResponse, ItemType } from './generated/types.gen'
 import {
   addItemToCart,
+  checkoutCart,
   getCart,
   getCatalogItem,
   getCatalogItems,
@@ -88,6 +89,22 @@ export function useRemoveCartItemMutation() {
         (current = []) =>
           current.filter((entry) => entry.itemId !== input.itemId),
       )
+    },
+  })
+}
+
+export function useCheckoutCartMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: checkoutCart,
+    onSuccess: async (_, input) => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: cartQueryKey(input.groupId),
+        }),
+        queryClient.invalidateQueries({ queryKey: ['activity'] }),
+        queryClient.invalidateQueries({ queryKey: ['catalog'] }),
+      ])
     },
   })
 }
