@@ -23,13 +23,16 @@ export function hasRole(member: CurrentMember, role: string) {
   return member.roles.some((assignment) => assignment.name === role)
 }
 
+export function isGlobalAdmin(member: CurrentMember) {
+  return hasRole(member, 'admin') || hasRole(member, 'global_admin')
+}
+
 export function canManageActiveGroup(
   member: CurrentMember,
   activeGroup: MemberGroup | null,
 ) {
   return (
-    hasRole(member, 'global_admin') ||
-    activeGroup?.roles.includes('group_admin') === true
+    isGlobalAdmin(member) || activeGroup?.roles.includes('group_admin') === true
   )
 }
 
@@ -47,7 +50,7 @@ export function navigationForMember(
     navigation.push({ label: 'Group Admin', to: '/group-admin' })
   }
 
-  if (hasRole(member, 'global_admin')) {
+  if (isGlobalAdmin(member)) {
     navigation.push({ label: 'Global Admin', to: '/global-admin' })
   }
 

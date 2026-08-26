@@ -3,6 +3,7 @@ import type { CurrentMember, MemberGroup } from '@/api/generated/types.gen'
 import {
   activeGroupFor,
   canManageActiveGroup,
+  isGlobalAdmin,
   navigationForMember,
 } from './member-access'
 
@@ -38,12 +39,12 @@ describe('member access', () => {
       ),
     ).toContain('Approvals')
     expect(
-      navigationForMember(memberWithRoles('global_admin'), groups[0]).map(
+      navigationForMember(memberWithRoles('admin'), groups[0]).map(
         (item) => item.label,
       ),
     ).not.toContain('Group Admin')
     expect(
-      navigationForMember(memberWithRoles('global_admin'), groups[0]).map(
+      navigationForMember(memberWithRoles('admin'), groups[0]).map(
         (item) => item.label,
       ),
     ).toContain('Global Admin')
@@ -61,8 +62,11 @@ describe('member access', () => {
     expect(
       canManageActiveGroup(memberWithRoles('group_admin'), groups[1]),
     ).toBe(true)
-    expect(
-      canManageActiveGroup(memberWithRoles('global_admin'), groups[0]),
-    ).toBe(true)
+    expect(canManageActiveGroup(memberWithRoles('admin'), groups[0])).toBe(true)
+  })
+
+  it('recognizes both current-member Global Admin role values during migration', () => {
+    expect(isGlobalAdmin(memberWithRoles('admin'))).toBe(true)
+    expect(isGlobalAdmin(memberWithRoles('global_admin'))).toBe(true)
   })
 })

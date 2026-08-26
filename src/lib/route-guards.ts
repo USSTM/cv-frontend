@@ -3,7 +3,7 @@ import { redirect } from '@tanstack/react-router'
 import { ApiError } from '@/api/client'
 import { getCurrentMember } from '@/api/member'
 import { currentMemberQueryKey } from '@/api/session-queries'
-import { hasRole } from './member-access'
+import { isGlobalAdmin } from './member-access'
 
 export async function requireAuth({
   context,
@@ -57,7 +57,7 @@ export async function requireGlobalAdmin({
 }) {
   const member = await currentMemberFor({ context })
 
-  if (!hasRole(member, 'global_admin')) {
+  if (!isGlobalAdmin(member)) {
     throw redirect({ to: '/' })
   }
 }

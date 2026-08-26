@@ -43,7 +43,7 @@ describe('route guards', () => {
     }
     const globalAdmin = {
       id: 'member-2',
-      roles: [{ name: 'global_admin', scope: 'global' }],
+      roles: [{ name: 'admin', scope: 'global' }],
       groups: [],
     }
 
