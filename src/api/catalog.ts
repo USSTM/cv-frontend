@@ -1,9 +1,11 @@
 import type {
   CartItemResponse,
+  CheckoutCartResponse,
   ItemImage,
   ItemResponse,
   ItemType,
   PaginatedItemResponse,
+  PreCheckoutConditionImage,
 } from './generated/types.gen'
 import { apiRequest } from './client'
 
@@ -68,4 +70,30 @@ export function removeCartItem(input: { groupId: string; itemId: string }) {
     `/cart/${encodeURIComponent(input.groupId)}/items/${encodeURIComponent(input.itemId)}`,
     { method: 'DELETE' },
   )
+}
+
+export function uploadPreCheckoutConditionImage(input: {
+  itemId: string
+  image: File
+}) {
+  const body = new FormData()
+  body.append('item_id', input.itemId)
+  body.append('image', input.image)
+
+  return apiRequest<PreCheckoutConditionImage>(
+    '/borrowings/pre-checkout-condition-image',
+    { method: 'POST', body },
+  )
+}
+
+export function checkoutCart(input: {
+  groupId: string
+  dueDate: string
+  beforeCondition: 'unusable' | 'damaged' | 'decent' | 'good' | 'pristine'
+  beforeConditionUrl: string
+}) {
+  return apiRequest<CheckoutCartResponse>('/checkout', {
+    method: 'POST',
+    body: input,
+  })
 }

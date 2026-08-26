@@ -75,14 +75,18 @@ async function rawApiRequest<T>(
   { body, headers, ...options }: ApiRequestOptions = {},
 ): Promise<T> {
   const forwardedCookie = getForwardedCookie()
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData
 
   const response = await fetch(new URL(path, apiBaseUrl), {
     ...options,
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body:
+      body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
     credentials: 'include',
     headers: {
       Accept: 'application/json',
-      ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+      ...(body === undefined || isFormData
+        ? {}
+        : { 'Content-Type': 'application/json' }),
       ...(forwardedCookie ? { Cookie: forwardedCookie } : {}),
       ...headers,
     },
@@ -91,13 +95,18 @@ async function rawApiRequest<T>(
   forwardSetCookies(response.headers.getSetCookie())
 
   if (!response.ok) {
-    const payload = (await response
-      .json()
-      .catch(() => null)) as ApiErrorPayload | null
+    const errorText = await response.text()
+    const payload = (() => {
+      try {
+        return JSON.parse(errorText) as ApiErrorPayload
+      } catch {
+        return null
+      }
+    })()
     throw new ApiError(
       response.status,
       payload?.error?.message ??
-        `Request failed with status ${response.status}.`,
+        (errorText.trim() || `Request failed with status ${response.status}.`),
       payload?.error?.code,
     )
   }
