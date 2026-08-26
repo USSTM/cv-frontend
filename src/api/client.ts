@@ -115,7 +115,14 @@ async function rawApiRequest<T>(
     return undefined as T
   }
 
-  return response.json() as Promise<T>
+  const text = await response.text()
+  if (!text) return undefined as T
+
+  try {
+    return JSON.parse(text) as T
+  } catch {
+    return text as T
+  }
 }
 
 export async function apiRequest<T>(

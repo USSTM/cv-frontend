@@ -2,10 +2,8 @@
 
 import {
   type Client,
-  type ClientMeta,
   formDataBodySerializer,
   type Options as Options2,
-  type RequestResult,
   type TDataShape,
 } from './client'
 import { client } from './client.gen'
@@ -257,7 +255,7 @@ export type Options<
    * You can pass arbitrary values through the `meta` object. This can be
    * used to access values that aren't defined as part of the SDK function.
    */
-  meta?: keyof ClientMeta extends never ? Record<string, unknown> : ClientMeta
+  meta?: Record<string, unknown>
 }
 
 /**
@@ -267,7 +265,7 @@ export type Options<
  */
 export const healthCheck = <ThrowOnError extends boolean = false>(
   options?: Options<HealthCheckData, ThrowOnError>,
-): RequestResult<HealthCheckResponses, unknown, ThrowOnError> =>
+) =>
   (options?.client ?? client).get<HealthCheckResponses, unknown, ThrowOnError>({
     url: '/health',
     ...options,
@@ -280,7 +278,7 @@ export const healthCheck = <ThrowOnError extends boolean = false>(
  */
 export const readinessCheck = <ThrowOnError extends boolean = false>(
   options?: Options<ReadinessCheckData, ThrowOnError>,
-): RequestResult<ReadinessCheckResponses, ReadinessCheckErrors, ThrowOnError> =>
+) =>
   (options?.client ?? client).get<
     ReadinessCheckResponses,
     ReadinessCheckErrors,
@@ -294,7 +292,7 @@ export const readinessCheck = <ThrowOnError extends boolean = false>(
  */
 export const requestOtp = <ThrowOnError extends boolean = false>(
   options: Options<RequestOtpData, ThrowOnError>,
-): RequestResult<RequestOtpResponses, RequestOtpErrors, ThrowOnError> =>
+) =>
   (options.client ?? client).post<
     RequestOtpResponses,
     RequestOtpErrors,
@@ -315,7 +313,7 @@ export const requestOtp = <ThrowOnError extends boolean = false>(
  */
 export const verifyOtp = <ThrowOnError extends boolean = false>(
   options: Options<VerifyOtpData, ThrowOnError>,
-): RequestResult<VerifyOtpResponses, VerifyOtpErrors, ThrowOnError> =>
+) =>
   (options.client ?? client).post<
     VerifyOtpResponses,
     VerifyOtpErrors,
@@ -336,7 +334,7 @@ export const verifyOtp = <ThrowOnError extends boolean = false>(
  */
 export const refreshToken = <ThrowOnError extends boolean = false>(
   options?: Options<RefreshTokenData, ThrowOnError>,
-): RequestResult<RefreshTokenResponses, RefreshTokenErrors, ThrowOnError> =>
+) =>
   (options?.client ?? client).post<
     RefreshTokenResponses,
     RefreshTokenErrors,
@@ -357,7 +355,7 @@ export const refreshToken = <ThrowOnError extends boolean = false>(
  */
 export const logout = <ThrowOnError extends boolean = false>(
   options?: Options<LogoutData, ThrowOnError>,
-): RequestResult<LogoutResponses, LogoutErrors, ThrowOnError> =>
+) =>
   (options?.client ?? client).post<LogoutResponses, LogoutErrors, ThrowOnError>(
     {
       url: '/auth/logout',
@@ -376,19 +374,13 @@ export const logout = <ThrowOnError extends boolean = false>(
  */
 export const listTimeSlots = <ThrowOnError extends boolean = false>(
   options?: Options<ListTimeSlotsData, ThrowOnError>,
-): RequestResult<ListTimeSlotsResponses, ListTimeSlotsErrors, ThrowOnError> =>
+) =>
   (options?.client ?? client).get<
     ListTimeSlotsResponses,
     ListTimeSlotsErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/time-slots',
     ...options,
   })
@@ -400,23 +392,13 @@ export const listTimeSlots = <ThrowOnError extends boolean = false>(
  */
 export const listAvailability = <ThrowOnError extends boolean = false>(
   options?: Options<ListAvailabilityData, ThrowOnError>,
-): RequestResult<
-  ListAvailabilityResponses,
-  ListAvailabilityErrors,
-  ThrowOnError
-> =>
+) =>
   (options?.client ?? client).get<
     ListAvailabilityResponses,
     ListAvailabilityErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/availability',
     ...options,
   })
@@ -428,27 +410,15 @@ export const listAvailability = <ThrowOnError extends boolean = false>(
  */
 export const createAvailability = <ThrowOnError extends boolean = false>(
   options: Options<CreateAvailabilityData, ThrowOnError>,
-): RequestResult<
-  CreateAvailabilityResponses,
-  CreateAvailabilityErrors,
-  ThrowOnError
-> =>
+) =>
   (options.client ?? client).post<
     CreateAvailabilityResponses,
     CreateAvailabilityErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/availability',
     ...options,
@@ -465,23 +435,13 @@ export const createAvailability = <ThrowOnError extends boolean = false>(
  */
 export const getAvailabilityByDate = <ThrowOnError extends boolean = false>(
   options: Options<GetAvailabilityByDateData, ThrowOnError>,
-): RequestResult<
-  GetAvailabilityByDateResponses,
-  GetAvailabilityByDateErrors,
-  ThrowOnError
-> =>
+) =>
   (options.client ?? client).get<
     GetAvailabilityByDateResponses,
     GetAvailabilityByDateErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/availability/{date}',
     ...options,
   })
@@ -493,27 +453,15 @@ export const getAvailabilityByDate = <ThrowOnError extends boolean = false>(
  */
 export const deleteAvailability = <ThrowOnError extends boolean = false>(
   options: Options<DeleteAvailabilityData, ThrowOnError>,
-): RequestResult<
-  DeleteAvailabilityResponses,
-  DeleteAvailabilityErrors,
-  ThrowOnError
-> =>
+) =>
   (options.client ?? client).delete<
     DeleteAvailabilityResponses,
     DeleteAvailabilityErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/availability/{id}',
     ...options,
@@ -526,23 +474,13 @@ export const deleteAvailability = <ThrowOnError extends boolean = false>(
  */
 export const getAvailabilityById = <ThrowOnError extends boolean = false>(
   options: Options<GetAvailabilityByIdData, ThrowOnError>,
-): RequestResult<
-  GetAvailabilityByIdResponses,
-  GetAvailabilityByIdErrors,
-  ThrowOnError
-> =>
+) =>
   (options.client ?? client).get<
     GetAvailabilityByIdResponses,
     GetAvailabilityByIdErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/availability/{id}',
     ...options,
   })
@@ -554,23 +492,13 @@ export const getAvailabilityById = <ThrowOnError extends boolean = false>(
  */
 export const getCurrentMember = <ThrowOnError extends boolean = false>(
   options?: Options<GetCurrentMemberData, ThrowOnError>,
-): RequestResult<
-  GetCurrentMemberResponses,
-  GetCurrentMemberErrors,
-  ThrowOnError
-> =>
+) =>
   (options?.client ?? client).get<
     GetCurrentMemberResponses,
     GetCurrentMemberErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/members/me',
     ...options,
   })
@@ -582,23 +510,13 @@ export const getCurrentMember = <ThrowOnError extends boolean = false>(
  */
 export const getUserAvailability = <ThrowOnError extends boolean = false>(
   options: Options<GetUserAvailabilityData, ThrowOnError>,
-): RequestResult<
-  GetUserAvailabilityResponses,
-  GetUserAvailabilityErrors,
-  ThrowOnError
-> =>
+) =>
   (options.client ?? client).get<
     GetUserAvailabilityResponses,
     GetUserAvailabilityErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/users/{userId}/availability',
     ...options,
   })
@@ -610,19 +528,13 @@ export const getUserAvailability = <ThrowOnError extends boolean = false>(
  */
 export const getBookingById = <ThrowOnError extends boolean = false>(
   options: Options<GetBookingByIdData, ThrowOnError>,
-): RequestResult<GetBookingByIdResponses, GetBookingByIdErrors, ThrowOnError> =>
+) =>
   (options.client ?? client).get<
     GetBookingByIdResponses,
     GetBookingByIdErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/bookings/{bookingId}',
     ...options,
   })
@@ -634,19 +546,13 @@ export const getBookingById = <ThrowOnError extends boolean = false>(
  */
 export const listBookings = <ThrowOnError extends boolean = false>(
   options?: Options<ListBookingsData, ThrowOnError>,
-): RequestResult<ListBookingsResponses, ListBookingsErrors, ThrowOnError> =>
+) =>
   (options?.client ?? client).get<
     ListBookingsResponses,
     ListBookingsErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/bookings',
     ...options,
   })
@@ -658,19 +564,13 @@ export const listBookings = <ThrowOnError extends boolean = false>(
  */
 export const getMyBookings = <ThrowOnError extends boolean = false>(
   options?: Options<GetMyBookingsData, ThrowOnError>,
-): RequestResult<GetMyBookingsResponses, GetMyBookingsErrors, ThrowOnError> =>
+) =>
   (options?.client ?? client).get<
     GetMyBookingsResponses,
     GetMyBookingsErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/bookings/my-bookings',
     ...options,
   })
@@ -682,19 +582,13 @@ export const getMyBookings = <ThrowOnError extends boolean = false>(
  */
 export const confirmBooking = <ThrowOnError extends boolean = false>(
   options: Options<ConfirmBookingData, ThrowOnError>,
-): RequestResult<ConfirmBookingResponses, ConfirmBookingErrors, ThrowOnError> =>
+) =>
   (options.client ?? client).patch<
     ConfirmBookingResponses,
     ConfirmBookingErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/bookings/{bookingId}/confirm',
     ...options,
     headers: {
@@ -710,19 +604,13 @@ export const confirmBooking = <ThrowOnError extends boolean = false>(
  */
 export const cancelBooking = <ThrowOnError extends boolean = false>(
   options: Options<CancelBookingData, ThrowOnError>,
-): RequestResult<CancelBookingResponses, CancelBookingErrors, ThrowOnError> =>
+) =>
   (options.client ?? client).patch<
     CancelBookingResponses,
     CancelBookingErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/bookings/{bookingId}/cancel',
     ...options,
     headers: {
@@ -738,23 +626,13 @@ export const cancelBooking = <ThrowOnError extends boolean = false>(
  */
 export const listPendingConfirmation = <ThrowOnError extends boolean = false>(
   options?: Options<ListPendingConfirmationData, ThrowOnError>,
-): RequestResult<
-  ListPendingConfirmationResponses,
-  ListPendingConfirmationErrors,
-  ThrowOnError
-> =>
+) =>
   (options?.client ?? client).get<
     ListPendingConfirmationResponses,
     ListPendingConfirmationErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/bookings/pending-confirmation',
     ...options,
   })
@@ -764,19 +642,13 @@ export const listPendingConfirmation = <ThrowOnError extends boolean = false>(
  */
 export const getAllGroups = <ThrowOnError extends boolean = false>(
   options?: Options<GetAllGroupsData, ThrowOnError>,
-): RequestResult<GetAllGroupsResponses, GetAllGroupsErrors, ThrowOnError> =>
+) =>
   (options?.client ?? client).get<
     GetAllGroupsResponses,
     GetAllGroupsErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/groups',
     ...options,
   })
@@ -786,19 +658,13 @@ export const getAllGroups = <ThrowOnError extends boolean = false>(
  */
 export const createGroup = <ThrowOnError extends boolean = false>(
   options: Options<CreateGroupData, ThrowOnError>,
-): RequestResult<CreateGroupResponses, CreateGroupErrors, ThrowOnError> =>
+) =>
   (options.client ?? client).post<
     CreateGroupResponses,
     CreateGroupErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/groups',
     ...options,
     headers: {
@@ -812,19 +678,13 @@ export const createGroup = <ThrowOnError extends boolean = false>(
  */
 export const deleteGroup = <ThrowOnError extends boolean = false>(
   options: Options<DeleteGroupData, ThrowOnError>,
-): RequestResult<DeleteGroupResponses, DeleteGroupErrors, ThrowOnError> =>
+) =>
   (options.client ?? client).delete<
     DeleteGroupResponses,
     DeleteGroupErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/groups/{id}',
     ...options,
   })
@@ -834,19 +694,13 @@ export const deleteGroup = <ThrowOnError extends boolean = false>(
  */
 export const getGroupById = <ThrowOnError extends boolean = false>(
   options: Options<GetGroupByIdData, ThrowOnError>,
-): RequestResult<GetGroupByIdResponses, GetGroupByIdErrors, ThrowOnError> =>
+) =>
   (options.client ?? client).get<
     GetGroupByIdResponses,
     GetGroupByIdErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/groups/{id}',
     ...options,
   })
@@ -856,19 +710,13 @@ export const getGroupById = <ThrowOnError extends boolean = false>(
  */
 export const updateGroup = <ThrowOnError extends boolean = false>(
   options: Options<UpdateGroupData, ThrowOnError>,
-): RequestResult<UpdateGroupResponses, UpdateGroupErrors, ThrowOnError> =>
+) =>
   (options.client ?? client).put<
     UpdateGroupResponses,
     UpdateGroupErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/groups/{id}',
     ...options,
     headers: {
@@ -884,23 +732,15 @@ export const updateGroup = <ThrowOnError extends boolean = false>(
  */
 export const pingProtected = <ThrowOnError extends boolean = false>(
   options?: Options<PingProtectedData, ThrowOnError>,
-): RequestResult<PingProtectedResponses, PingProtectedErrors, ThrowOnError> =>
+) =>
   (options?.client ?? client).get<
     PingProtectedResponses,
     PingProtectedErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/ping',
     ...options,
@@ -913,23 +753,15 @@ export const pingProtected = <ThrowOnError extends boolean = false>(
  */
 export const getItems = <ThrowOnError extends boolean = false>(
   options?: Options<GetItemsData, ThrowOnError>,
-): RequestResult<GetItemsResponses, GetItemsErrors, ThrowOnError> =>
+) =>
   (options?.client ?? client).get<
     GetItemsResponses,
     GetItemsErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/items',
     ...options,
@@ -942,23 +774,15 @@ export const getItems = <ThrowOnError extends boolean = false>(
  */
 export const createItem = <ThrowOnError extends boolean = false>(
   options: Options<CreateItemData, ThrowOnError>,
-): RequestResult<CreateItemResponses, CreateItemErrors, ThrowOnError> =>
+) =>
   (options.client ?? client).post<
     CreateItemResponses,
     CreateItemErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/items',
     ...options,
@@ -975,23 +799,15 @@ export const createItem = <ThrowOnError extends boolean = false>(
  */
 export const getItemsByType = <ThrowOnError extends boolean = false>(
   options: Options<GetItemsByTypeData, ThrowOnError>,
-): RequestResult<GetItemsByTypeResponses, GetItemsByTypeErrors, ThrowOnError> =>
+) =>
   (options.client ?? client).get<
     GetItemsByTypeResponses,
     GetItemsByTypeErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/items/type/{type}',
     ...options,
@@ -1004,23 +820,15 @@ export const getItemsByType = <ThrowOnError extends boolean = false>(
  */
 export const deleteItem = <ThrowOnError extends boolean = false>(
   options: Options<DeleteItemData, ThrowOnError>,
-): RequestResult<DeleteItemResponses, DeleteItemErrors, ThrowOnError> =>
+) =>
   (options.client ?? client).delete<
     DeleteItemResponses,
     DeleteItemErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/items/{id}',
     ...options,
@@ -1033,23 +841,15 @@ export const deleteItem = <ThrowOnError extends boolean = false>(
  */
 export const getItemById = <ThrowOnError extends boolean = false>(
   options: Options<GetItemByIdData, ThrowOnError>,
-): RequestResult<GetItemByIdResponses, GetItemByIdErrors, ThrowOnError> =>
+) =>
   (options.client ?? client).get<
     GetItemByIdResponses,
     GetItemByIdErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/items/{id}',
     ...options,
@@ -1062,23 +862,15 @@ export const getItemById = <ThrowOnError extends boolean = false>(
  */
 export const patchItem = <ThrowOnError extends boolean = false>(
   options: Options<PatchItemData, ThrowOnError>,
-): RequestResult<PatchItemResponses, PatchItemErrors, ThrowOnError> =>
+) =>
   (options.client ?? client).patch<
     PatchItemResponses,
     PatchItemErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/items/{id}',
     ...options,
@@ -1095,23 +887,15 @@ export const patchItem = <ThrowOnError extends boolean = false>(
  */
 export const updateItem = <ThrowOnError extends boolean = false>(
   options: Options<UpdateItemData, ThrowOnError>,
-): RequestResult<UpdateItemResponses, UpdateItemErrors, ThrowOnError> =>
+) =>
   (options.client ?? client).put<
     UpdateItemResponses,
     UpdateItemErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/items/{id}',
     ...options,
@@ -1128,23 +912,15 @@ export const updateItem = <ThrowOnError extends boolean = false>(
  */
 export const getUsers = <ThrowOnError extends boolean = false>(
   options?: Options<GetUsersData, ThrowOnError>,
-): RequestResult<GetUsersResponses, GetUsersErrors, ThrowOnError> =>
+) =>
   (options?.client ?? client).get<
     GetUsersResponses,
     GetUsersErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/admin/users',
     ...options,
@@ -1157,27 +933,15 @@ export const getUsers = <ThrowOnError extends boolean = false>(
  */
 export const getUsersByGroup = <ThrowOnError extends boolean = false>(
   options: Options<GetUsersByGroupData, ThrowOnError>,
-): RequestResult<
-  GetUsersByGroupResponses,
-  GetUsersByGroupErrors,
-  ThrowOnError
-> =>
+) =>
   (options.client ?? client).get<
     GetUsersByGroupResponses,
     GetUsersByGroupErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/admin/users/group/{groupId}',
     ...options,
@@ -1188,23 +952,13 @@ export const getUsersByGroup = <ThrowOnError extends boolean = false>(
  */
 export const getMyPreferences = <ThrowOnError extends boolean = false>(
   options?: Options<GetMyPreferencesData, ThrowOnError>,
-): RequestResult<
-  GetMyPreferencesResponses,
-  GetMyPreferencesErrors,
-  ThrowOnError
-> =>
+) =>
   (options?.client ?? client).get<
     GetMyPreferencesResponses,
     GetMyPreferencesErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/users/me/preferences',
     ...options,
   })
@@ -1214,23 +968,13 @@ export const getMyPreferences = <ThrowOnError extends boolean = false>(
  */
 export const updateMyPreferences = <ThrowOnError extends boolean = false>(
   options: Options<UpdateMyPreferencesData, ThrowOnError>,
-): RequestResult<
-  UpdateMyPreferencesResponses,
-  UpdateMyPreferencesErrors,
-  ThrowOnError
-> =>
+) =>
   (options.client ?? client).patch<
     UpdateMyPreferencesResponses,
     UpdateMyPreferencesErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/users/me/preferences',
     ...options,
     headers: {
@@ -1246,23 +990,15 @@ export const updateMyPreferences = <ThrowOnError extends boolean = false>(
  */
 export const getUserById = <ThrowOnError extends boolean = false>(
   options: Options<GetUserByIdData, ThrowOnError>,
-): RequestResult<GetUserByIdResponses, GetUserByIdErrors, ThrowOnError> =>
+) =>
   (options.client ?? client).get<
     GetUserByIdResponses,
     GetUserByIdErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/users/{userId}',
     ...options,
@@ -1275,23 +1011,15 @@ export const getUserById = <ThrowOnError extends boolean = false>(
  */
 export const getUserByEmail = <ThrowOnError extends boolean = false>(
   options: Options<GetUserByEmailData, ThrowOnError>,
-): RequestResult<GetUserByEmailResponses, GetUserByEmailErrors, ThrowOnError> =>
+) =>
   (options.client ?? client).get<
     GetUserByEmailResponses,
     GetUserByEmailErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/users/email/{email}',
     ...options,
@@ -1304,23 +1032,15 @@ export const getUserByEmail = <ThrowOnError extends boolean = false>(
  */
 export const inviteUser = <ThrowOnError extends boolean = false>(
   options: Options<InviteUserData, ThrowOnError>,
-): RequestResult<InviteUserResponses, InviteUserErrors, ThrowOnError> =>
+) =>
   (options.client ?? client).post<
     InviteUserResponses,
     InviteUserErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/admin/invite',
     ...options,
@@ -1337,23 +1057,15 @@ export const inviteUser = <ThrowOnError extends boolean = false>(
  */
 export const clearCart = <ThrowOnError extends boolean = false>(
   options: Options<ClearCartData, ThrowOnError>,
-): RequestResult<ClearCartResponses, ClearCartErrors, ThrowOnError> =>
+) =>
   (options.client ?? client).delete<
     ClearCartResponses,
     ClearCartErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/cart/{groupId}',
     ...options,
@@ -1366,20 +1078,12 @@ export const clearCart = <ThrowOnError extends boolean = false>(
  */
 export const getCart = <ThrowOnError extends boolean = false>(
   options: Options<GetCartData, ThrowOnError>,
-): RequestResult<GetCartResponses, GetCartErrors, ThrowOnError> =>
+) =>
   (options.client ?? client).get<GetCartResponses, GetCartErrors, ThrowOnError>(
     {
       security: [
-        {
-          key: 'BearerAuth',
-          scheme: 'bearer',
-          type: 'http',
-        },
-        {
-          key: 'OAuth2',
-          scheme: 'bearer',
-          type: 'http',
-        },
+        { scheme: 'bearer', type: 'http' },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/cart/{groupId}',
       ...options,
@@ -1393,23 +1097,15 @@ export const getCart = <ThrowOnError extends boolean = false>(
  */
 export const addToCart = <ThrowOnError extends boolean = false>(
   options: Options<AddToCartData, ThrowOnError>,
-): RequestResult<AddToCartResponses, AddToCartErrors, ThrowOnError> =>
+) =>
   (options.client ?? client).post<
     AddToCartResponses,
     AddToCartErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/cart/{groupId}/items',
     ...options,
@@ -1426,23 +1122,15 @@ export const addToCart = <ThrowOnError extends boolean = false>(
  */
 export const removeFromCart = <ThrowOnError extends boolean = false>(
   options: Options<RemoveFromCartData, ThrowOnError>,
-): RequestResult<RemoveFromCartResponses, RemoveFromCartErrors, ThrowOnError> =>
+) =>
   (options.client ?? client).delete<
     RemoveFromCartResponses,
     RemoveFromCartErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/cart/{groupId}/items/{itemId}',
     ...options,
@@ -1455,27 +1143,15 @@ export const removeFromCart = <ThrowOnError extends boolean = false>(
  */
 export const updateCartItemQuantity = <ThrowOnError extends boolean = false>(
   options: Options<UpdateCartItemQuantityData, ThrowOnError>,
-): RequestResult<
-  UpdateCartItemQuantityResponses,
-  UpdateCartItemQuantityErrors,
-  ThrowOnError
-> =>
+) =>
   (options.client ?? client).patch<
     UpdateCartItemQuantityResponses,
     UpdateCartItemQuantityErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/cart/{groupId}/items/{itemId}',
     ...options,
@@ -1496,23 +1172,15 @@ export const updateCartItemQuantity = <ThrowOnError extends boolean = false>(
  */
 export const checkoutCart = <ThrowOnError extends boolean = false>(
   options: Options<CheckoutCartData, ThrowOnError>,
-): RequestResult<CheckoutCartResponses, CheckoutCartErrors, ThrowOnError> =>
+) =>
   (options.client ?? client).post<
     CheckoutCartResponses,
     CheckoutCartErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/checkout',
     ...options,
@@ -1533,27 +1201,15 @@ export const checkoutCart = <ThrowOnError extends boolean = false>(
  */
 export const getUserTakingHistory = <ThrowOnError extends boolean = false>(
   options: Options<GetUserTakingHistoryData, ThrowOnError>,
-): RequestResult<
-  GetUserTakingHistoryResponses,
-  GetUserTakingHistoryErrors,
-  ThrowOnError
-> =>
+) =>
   (options.client ?? client).get<
     GetUserTakingHistoryResponses,
     GetUserTakingHistoryErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/audit/takings/users/{userId}',
     ...options,
@@ -1566,27 +1222,15 @@ export const getUserTakingHistory = <ThrowOnError extends boolean = false>(
  */
 export const getItemTakingHistory = <ThrowOnError extends boolean = false>(
   options: Options<GetItemTakingHistoryData, ThrowOnError>,
-): RequestResult<
-  GetItemTakingHistoryResponses,
-  GetItemTakingHistoryErrors,
-  ThrowOnError
-> =>
+) =>
   (options.client ?? client).get<
     GetItemTakingHistoryResponses,
     GetItemTakingHistoryErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/audit/takings/items/{itemId}',
     ...options,
@@ -1599,27 +1243,15 @@ export const getItemTakingHistory = <ThrowOnError extends boolean = false>(
  */
 export const getItemTakingStats = <ThrowOnError extends boolean = false>(
   options: Options<GetItemTakingStatsData, ThrowOnError>,
-): RequestResult<
-  GetItemTakingStatsResponses,
-  GetItemTakingStatsErrors,
-  ThrowOnError
-> =>
+) =>
   (options.client ?? client).get<
     GetItemTakingStatsResponses,
     GetItemTakingStatsErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/audit/takings/items/{itemId}/stats',
     ...options,
@@ -1632,23 +1264,15 @@ export const getItemTakingStats = <ThrowOnError extends boolean = false>(
  */
 export const borrowItem = <ThrowOnError extends boolean = false>(
   options: Options<BorrowItemData, ThrowOnError>,
-): RequestResult<BorrowItemResponses, BorrowItemErrors, ThrowOnError> =>
+) =>
   (options.client ?? client).post<
     BorrowItemResponses,
     BorrowItemErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/borrowings/item',
     ...options,
@@ -1665,23 +1289,15 @@ export const borrowItem = <ThrowOnError extends boolean = false>(
  */
 export const returnItem = <ThrowOnError extends boolean = false>(
   options: Options<ReturnItemData, ThrowOnError>,
-): RequestResult<ReturnItemResponses, ReturnItemErrors, ThrowOnError> =>
+) =>
   (options.client ?? client).post<
     ReturnItemResponses,
     ReturnItemErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/borrowings/item/return/{itemId}',
     ...options,
@@ -1698,27 +1314,15 @@ export const returnItem = <ThrowOnError extends boolean = false>(
  */
 export const checkBorrowingItemStatus = <ThrowOnError extends boolean = false>(
   options: Options<CheckBorrowingItemStatusData, ThrowOnError>,
-): RequestResult<
-  CheckBorrowingItemStatusResponses,
-  CheckBorrowingItemStatusErrors,
-  ThrowOnError
-> =>
+) =>
   (options.client ?? client).get<
     CheckBorrowingItemStatusResponses,
     CheckBorrowingItemStatusErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/borrowings/item/status/{itemId}',
     ...options,
@@ -1731,27 +1335,15 @@ export const checkBorrowingItemStatus = <ThrowOnError extends boolean = false>(
  */
 export const getAllActiveBorrowedItems = <ThrowOnError extends boolean = false>(
   options?: Options<GetAllActiveBorrowedItemsData, ThrowOnError>,
-): RequestResult<
-  GetAllActiveBorrowedItemsResponses,
-  GetAllActiveBorrowedItemsErrors,
-  ThrowOnError
-> =>
+) =>
   (options?.client ?? client).get<
     GetAllActiveBorrowedItemsResponses,
     GetAllActiveBorrowedItemsErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/borrowings/item/active',
     ...options,
@@ -1764,27 +1356,15 @@ export const getAllActiveBorrowedItems = <ThrowOnError extends boolean = false>(
  */
 export const getAllReturnedItems = <ThrowOnError extends boolean = false>(
   options?: Options<GetAllReturnedItemsData, ThrowOnError>,
-): RequestResult<
-  GetAllReturnedItemsResponses,
-  GetAllReturnedItemsErrors,
-  ThrowOnError
-> =>
+) =>
   (options?.client ?? client).get<
     GetAllReturnedItemsResponses,
     GetAllReturnedItemsErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/borrowings/item/returned',
     ...options,
@@ -1799,27 +1379,15 @@ export const getActiveBorrowedItemsToBeReturnedByDate = <
   ThrowOnError extends boolean = false,
 >(
   options: Options<GetActiveBorrowedItemsToBeReturnedByDateData, ThrowOnError>,
-): RequestResult<
-  GetActiveBorrowedItemsToBeReturnedByDateResponses,
-  GetActiveBorrowedItemsToBeReturnedByDateErrors,
-  ThrowOnError
-> =>
+) =>
   (options.client ?? client).get<
     GetActiveBorrowedItemsToBeReturnedByDateResponses,
     GetActiveBorrowedItemsToBeReturnedByDateErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/borrowings/item/returned/{due_date}',
     ...options,
@@ -1834,27 +1402,15 @@ export const getBorrowedItemHistoryByUserId = <
   ThrowOnError extends boolean = false,
 >(
   options: Options<GetBorrowedItemHistoryByUserIdData, ThrowOnError>,
-): RequestResult<
-  GetBorrowedItemHistoryByUserIdResponses,
-  GetBorrowedItemHistoryByUserIdErrors,
-  ThrowOnError
-> =>
+) =>
   (options.client ?? client).get<
     GetBorrowedItemHistoryByUserIdResponses,
     GetBorrowedItemHistoryByUserIdErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/borrowings/user/{userId}',
     ...options,
@@ -1869,27 +1425,15 @@ export const getActiveBorrowedItemsByUserId = <
   ThrowOnError extends boolean = false,
 >(
   options: Options<GetActiveBorrowedItemsByUserIdData, ThrowOnError>,
-): RequestResult<
-  GetActiveBorrowedItemsByUserIdResponses,
-  GetActiveBorrowedItemsByUserIdErrors,
-  ThrowOnError
-> =>
+) =>
   (options.client ?? client).get<
     GetActiveBorrowedItemsByUserIdResponses,
     GetActiveBorrowedItemsByUserIdErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/borrowings/user/active/{userId}',
     ...options,
@@ -1902,27 +1446,15 @@ export const getActiveBorrowedItemsByUserId = <
  */
 export const getReturnedItemsByUserId = <ThrowOnError extends boolean = false>(
   options: Options<GetReturnedItemsByUserIdData, ThrowOnError>,
-): RequestResult<
-  GetReturnedItemsByUserIdResponses,
-  GetReturnedItemsByUserIdErrors,
-  ThrowOnError
-> =>
+) =>
   (options.client ?? client).get<
     GetReturnedItemsByUserIdResponses,
     GetReturnedItemsByUserIdErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/borrowings/user/returned/{userId}',
     ...options,
@@ -1935,23 +1467,15 @@ export const getReturnedItemsByUserId = <ThrowOnError extends boolean = false>(
  */
 export const requestItem = <ThrowOnError extends boolean = false>(
   options: Options<RequestItemData, ThrowOnError>,
-): RequestResult<RequestItemResponses, RequestItemErrors, ThrowOnError> =>
+) =>
   (options.client ?? client).post<
     RequestItemResponses,
     RequestItemErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/requests/item',
     ...options,
@@ -1968,23 +1492,15 @@ export const requestItem = <ThrowOnError extends boolean = false>(
  */
 export const reviewRequest = <ThrowOnError extends boolean = false>(
   options: Options<ReviewRequestData, ThrowOnError>,
-): RequestResult<ReviewRequestResponses, ReviewRequestErrors, ThrowOnError> =>
+) =>
   (options.client ?? client).post<
     ReviewRequestResponses,
     ReviewRequestErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/requests/{requestId}/review',
     ...options,
@@ -2001,23 +1517,15 @@ export const reviewRequest = <ThrowOnError extends boolean = false>(
  */
 export const getAllRequests = <ThrowOnError extends boolean = false>(
   options?: Options<GetAllRequestsData, ThrowOnError>,
-): RequestResult<GetAllRequestsResponses, GetAllRequestsErrors, ThrowOnError> =>
+) =>
   (options?.client ?? client).get<
     GetAllRequestsResponses,
     GetAllRequestsErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/requests',
     ...options,
@@ -2030,27 +1538,15 @@ export const getAllRequests = <ThrowOnError extends boolean = false>(
  */
 export const getPendingRequests = <ThrowOnError extends boolean = false>(
   options?: Options<GetPendingRequestsData, ThrowOnError>,
-): RequestResult<
-  GetPendingRequestsResponses,
-  GetPendingRequestsErrors,
-  ThrowOnError
-> =>
+) =>
   (options?.client ?? client).get<
     GetPendingRequestsResponses,
     GetPendingRequestsErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/requests/pending',
     ...options,
@@ -2063,27 +1559,15 @@ export const getPendingRequests = <ThrowOnError extends boolean = false>(
  */
 export const getRequestsByUserId = <ThrowOnError extends boolean = false>(
   options: Options<GetRequestsByUserIdData, ThrowOnError>,
-): RequestResult<
-  GetRequestsByUserIdResponses,
-  GetRequestsByUserIdErrors,
-  ThrowOnError
-> =>
+) =>
   (options.client ?? client).get<
     GetRequestsByUserIdResponses,
     GetRequestsByUserIdErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/requests/user/{userId}',
     ...options,
@@ -2096,23 +1580,15 @@ export const getRequestsByUserId = <ThrowOnError extends boolean = false>(
  */
 export const getRequestById = <ThrowOnError extends boolean = false>(
   options: Options<GetRequestByIdData, ThrowOnError>,
-): RequestResult<GetRequestByIdResponses, GetRequestByIdErrors, ThrowOnError> =>
+) =>
   (options.client ?? client).get<
     GetRequestByIdResponses,
     GetRequestByIdErrors,
     ThrowOnError
   >({
     security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-      {
-        key: 'OAuth2',
-        scheme: 'bearer',
-        type: 'http',
-      },
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
     ],
     url: '/requests/{requestId}',
     ...options,
@@ -2123,19 +1599,13 @@ export const getRequestById = <ThrowOnError extends boolean = false>(
  */
 export const listItemImages = <ThrowOnError extends boolean = false>(
   options: Options<ListItemImagesData, ThrowOnError>,
-): RequestResult<ListItemImagesResponses, ListItemImagesErrors, ThrowOnError> =>
+) =>
   (options.client ?? client).get<
     ListItemImagesResponses,
     ListItemImagesErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/items/{itemId}/images',
     ...options,
   })
@@ -2145,24 +1615,14 @@ export const listItemImages = <ThrowOnError extends boolean = false>(
  */
 export const uploadItemImage = <ThrowOnError extends boolean = false>(
   options: Options<UploadItemImageData, ThrowOnError>,
-): RequestResult<
-  UploadItemImageResponses,
-  UploadItemImageErrors,
-  ThrowOnError
-> =>
+) =>
   (options.client ?? client).post<
     UploadItemImageResponses,
     UploadItemImageErrors,
     ThrowOnError
   >({
     ...formDataBodySerializer,
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/items/{itemId}/images',
     ...options,
     headers: {
@@ -2176,23 +1636,13 @@ export const uploadItemImage = <ThrowOnError extends boolean = false>(
  */
 export const deleteItemImage = <ThrowOnError extends boolean = false>(
   options: Options<DeleteItemImageData, ThrowOnError>,
-): RequestResult<
-  DeleteItemImageResponses,
-  DeleteItemImageErrors,
-  ThrowOnError
-> =>
+) =>
   (options.client ?? client).delete<
     DeleteItemImageResponses,
     DeleteItemImageErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/items/{itemId}/images/{imageId}',
     ...options,
   })
@@ -2202,23 +1652,13 @@ export const deleteItemImage = <ThrowOnError extends boolean = false>(
  */
 export const setItemPrimaryImage = <ThrowOnError extends boolean = false>(
   options: Options<SetItemPrimaryImageData, ThrowOnError>,
-): RequestResult<
-  SetItemPrimaryImageResponses,
-  SetItemPrimaryImageErrors,
-  ThrowOnError
-> =>
+) =>
   (options.client ?? client).put<
     SetItemPrimaryImageResponses,
     SetItemPrimaryImageErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/items/{itemId}/images/{imageId}/primary',
     ...options,
   })
@@ -2232,24 +1672,14 @@ export const uploadPreCheckoutConditionImage = <
   ThrowOnError extends boolean = false,
 >(
   options: Options<UploadPreCheckoutConditionImageData, ThrowOnError>,
-): RequestResult<
-  UploadPreCheckoutConditionImageResponses,
-  UploadPreCheckoutConditionImageErrors,
-  ThrowOnError
-> =>
+) =>
   (options.client ?? client).post<
     UploadPreCheckoutConditionImageResponses,
     UploadPreCheckoutConditionImageErrors,
     ThrowOnError
   >({
     ...formDataBodySerializer,
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/borrowings/pre-checkout-condition-image',
     ...options,
     headers: {
@@ -2263,23 +1693,13 @@ export const uploadPreCheckoutConditionImage = <
  */
 export const listBorrowingImages = <ThrowOnError extends boolean = false>(
   options: Options<ListBorrowingImagesData, ThrowOnError>,
-): RequestResult<
-  ListBorrowingImagesResponses,
-  ListBorrowingImagesErrors,
-  ThrowOnError
-> =>
+) =>
   (options.client ?? client).get<
     ListBorrowingImagesResponses,
     ListBorrowingImagesErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/borrowings/{borrowingId}/images',
     ...options,
   })
@@ -2289,24 +1709,14 @@ export const listBorrowingImages = <ThrowOnError extends boolean = false>(
  */
 export const uploadBorrowingImage = <ThrowOnError extends boolean = false>(
   options: Options<UploadBorrowingImageData, ThrowOnError>,
-): RequestResult<
-  UploadBorrowingImageResponses,
-  UploadBorrowingImageErrors,
-  ThrowOnError
-> =>
+) =>
   (options.client ?? client).post<
     UploadBorrowingImageResponses,
     UploadBorrowingImageErrors,
     ThrowOnError
   >({
     ...formDataBodySerializer,
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/borrowings/{borrowingId}/images',
     ...options,
     headers: {
@@ -2320,23 +1730,13 @@ export const uploadBorrowingImage = <ThrowOnError extends boolean = false>(
  */
 export const deleteBorrowingImage = <ThrowOnError extends boolean = false>(
   options: Options<DeleteBorrowingImageData, ThrowOnError>,
-): RequestResult<
-  DeleteBorrowingImageResponses,
-  DeleteBorrowingImageErrors,
-  ThrowOnError
-> =>
+) =>
   (options.client ?? client).delete<
     DeleteBorrowingImageResponses,
     DeleteBorrowingImageErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/borrowings/{borrowingId}/images/{imageId}',
     ...options,
   })
@@ -2346,24 +1746,14 @@ export const deleteBorrowingImage = <ThrowOnError extends boolean = false>(
  */
 export const uploadGroupLogo = <ThrowOnError extends boolean = false>(
   options: Options<UploadGroupLogoData, ThrowOnError>,
-): RequestResult<
-  UploadGroupLogoResponses,
-  UploadGroupLogoErrors,
-  ThrowOnError
-> =>
+) =>
   (options.client ?? client).put<
     UploadGroupLogoResponses,
     UploadGroupLogoErrors,
     ThrowOnError
   >({
     ...formDataBodySerializer,
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/groups/{groupId}/logo',
     ...options,
     headers: {
@@ -2377,23 +1767,13 @@ export const uploadGroupLogo = <ThrowOnError extends boolean = false>(
  */
 export const getNotifications = <ThrowOnError extends boolean = false>(
   options?: Options<GetNotificationsData, ThrowOnError>,
-): RequestResult<
-  GetNotificationsResponses,
-  GetNotificationsErrors,
-  ThrowOnError
-> =>
+) =>
   (options?.client ?? client).get<
     GetNotificationsResponses,
     GetNotificationsErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/notifications',
     ...options,
   })
@@ -2405,23 +1785,13 @@ export const getUnreadNotificationCount = <
   ThrowOnError extends boolean = false,
 >(
   options?: Options<GetUnreadNotificationCountData, ThrowOnError>,
-): RequestResult<
-  GetUnreadNotificationCountResponses,
-  GetUnreadNotificationCountErrors,
-  ThrowOnError
-> =>
+) =>
   (options?.client ?? client).get<
     GetUnreadNotificationCountResponses,
     GetUnreadNotificationCountErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/notifications/unread-count',
     ...options,
   })
@@ -2431,23 +1801,13 @@ export const getUnreadNotificationCount = <
  */
 export const markNotificationAsRead = <ThrowOnError extends boolean = false>(
   options: Options<MarkNotificationAsReadData, ThrowOnError>,
-): RequestResult<
-  MarkNotificationAsReadResponses,
-  MarkNotificationAsReadErrors,
-  ThrowOnError
-> =>
+) =>
   (options.client ?? client).put<
     MarkNotificationAsReadResponses,
     MarkNotificationAsReadErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/notifications/{id}/read',
     ...options,
   })
@@ -2459,23 +1819,13 @@ export const markAllNotificationsAsRead = <
   ThrowOnError extends boolean = false,
 >(
   options?: Options<MarkAllNotificationsAsReadData, ThrowOnError>,
-): RequestResult<
-  MarkAllNotificationsAsReadResponses,
-  MarkAllNotificationsAsReadErrors,
-  ThrowOnError
-> =>
+) =>
   (options?.client ?? client).put<
     MarkAllNotificationsAsReadResponses,
     MarkAllNotificationsAsReadErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        key: 'BearerAuth',
-        scheme: 'bearer',
-        type: 'http',
-      },
-    ],
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/notifications/read-all',
     ...options,
   })
