@@ -12,11 +12,12 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as GroupAdminRouteImport } from './routes/group-admin'
+import { Route as GlobalAdminRouteImport } from './routes/global-admin'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CatalogRouteImport } from './routes/catalog'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as ApprovalsRouteImport } from './routes/approvals'
-import { Route as AdminRouteImport } from './routes/admin'
 import { Route as ActivityRouteImport } from './routes/activity'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -33,6 +34,16 @@ const NotificationsRoute = NotificationsRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GroupAdminRoute = GroupAdminRouteImport.update({
+  id: '/group-admin',
+  path: '/group-admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GlobalAdminRoute = GlobalAdminRouteImport.update({
+  id: '/global-admin',
+  path: '/global-admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CheckoutRoute = CheckoutRouteImport.update({
@@ -55,11 +66,6 @@ const ApprovalsRoute = ApprovalsRouteImport.update({
   path: '/approvals',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ActivityRoute = ActivityRouteImport.update({
   id: '/activity',
   path: '/activity',
@@ -74,11 +80,12 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/activity': typeof ActivityRoute
-  '/admin': typeof AdminRoute
   '/approvals': typeof ApprovalsRoute
   '/cart': typeof CartRoute
   '/catalog': typeof CatalogRoute
   '/checkout': typeof CheckoutRoute
+  '/global-admin': typeof GlobalAdminRoute
+  '/group-admin': typeof GroupAdminRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRoute
@@ -86,11 +93,12 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/activity': typeof ActivityRoute
-  '/admin': typeof AdminRoute
   '/approvals': typeof ApprovalsRoute
   '/cart': typeof CartRoute
   '/catalog': typeof CatalogRoute
   '/checkout': typeof CheckoutRoute
+  '/global-admin': typeof GlobalAdminRoute
+  '/group-admin': typeof GroupAdminRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRoute
@@ -99,11 +107,12 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/activity': typeof ActivityRoute
-  '/admin': typeof AdminRoute
   '/approvals': typeof ApprovalsRoute
   '/cart': typeof CartRoute
   '/catalog': typeof CatalogRoute
   '/checkout': typeof CheckoutRoute
+  '/global-admin': typeof GlobalAdminRoute
+  '/group-admin': typeof GroupAdminRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRoute
@@ -113,11 +122,12 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/activity'
-    | '/admin'
     | '/approvals'
     | '/cart'
     | '/catalog'
     | '/checkout'
+    | '/global-admin'
+    | '/group-admin'
     | '/login'
     | '/notifications'
     | '/settings'
@@ -125,11 +135,12 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/activity'
-    | '/admin'
     | '/approvals'
     | '/cart'
     | '/catalog'
     | '/checkout'
+    | '/global-admin'
+    | '/group-admin'
     | '/login'
     | '/notifications'
     | '/settings'
@@ -137,11 +148,12 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/activity'
-    | '/admin'
     | '/approvals'
     | '/cart'
     | '/catalog'
     | '/checkout'
+    | '/global-admin'
+    | '/group-admin'
     | '/login'
     | '/notifications'
     | '/settings'
@@ -150,11 +162,12 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActivityRoute: typeof ActivityRoute
-  AdminRoute: typeof AdminRoute
   ApprovalsRoute: typeof ApprovalsRoute
   CartRoute: typeof CartRoute
   CatalogRoute: typeof CatalogRoute
   CheckoutRoute: typeof CheckoutRoute
+  GlobalAdminRoute: typeof GlobalAdminRoute
+  GroupAdminRoute: typeof GroupAdminRoute
   LoginRoute: typeof LoginRoute
   NotificationsRoute: typeof NotificationsRoute
   SettingsRoute: typeof SettingsRoute
@@ -181,6 +194,20 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/group-admin': {
+      id: '/group-admin'
+      path: '/group-admin'
+      fullPath: '/group-admin'
+      preLoaderRoute: typeof GroupAdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/global-admin': {
+      id: '/global-admin'
+      path: '/global-admin'
+      fullPath: '/global-admin'
+      preLoaderRoute: typeof GlobalAdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/checkout': {
@@ -211,13 +238,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApprovalsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/activity': {
       id: '/activity'
       path: '/activity'
@@ -238,11 +258,12 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActivityRoute: ActivityRoute,
-  AdminRoute: AdminRoute,
   ApprovalsRoute: ApprovalsRoute,
   CartRoute: CartRoute,
   CatalogRoute: CatalogRoute,
   CheckoutRoute: CheckoutRoute,
+  GlobalAdminRoute: GlobalAdminRoute,
+  GroupAdminRoute: GroupAdminRoute,
   LoginRoute: LoginRoute,
   NotificationsRoute: NotificationsRoute,
   SettingsRoute: SettingsRoute,

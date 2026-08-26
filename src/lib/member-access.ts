@@ -2,7 +2,14 @@ import type { CurrentMember, MemberGroup } from '@/api/generated/types.gen'
 
 export type NavigationItem = {
   label: string
-  to: '/' | '/activity' | '/catalog' | '/cart' | '/approvals' | '/admin'
+  to:
+    | '/'
+    | '/activity'
+    | '/catalog'
+    | '/cart'
+    | '/approvals'
+    | '/group-admin'
+    | '/global-admin'
 }
 
 const MEMBER_NAVIGATION: NavigationItem[] = [
@@ -36,8 +43,12 @@ export function navigationForMember(
     navigation.push({ label: 'Approvals', to: '/approvals' })
   }
 
-  if (canManageActiveGroup(member, activeGroup)) {
-    navigation.push({ label: 'Admin', to: '/admin' })
+  if (activeGroup?.roles.includes('group_admin')) {
+    navigation.push({ label: 'Group Admin', to: '/group-admin' })
+  }
+
+  if (hasRole(member, 'global_admin')) {
+    navigation.push({ label: 'Global Admin', to: '/global-admin' })
   }
 
   return navigation
