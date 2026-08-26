@@ -72,7 +72,6 @@ export async function requireGlobalAdmin({
     throw redirect({ to: '/' })
   }
 }
-}
 
 export async function redirectIfAuthenticated({
   context,
