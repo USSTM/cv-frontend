@@ -46,7 +46,7 @@ export default function Header() {
 
     if (
       currentMember &&
-      location.pathname === '/admin' &&
+      location.pathname === '/group-admin' &&
       !canManageActiveGroup(currentMember, nextGroup)
     ) {
       navigate({ to: '/' })
