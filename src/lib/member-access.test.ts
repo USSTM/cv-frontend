@@ -32,22 +32,28 @@ describe('member access', () => {
       navigationForMember(memberWithRoles('group_admin'), groups[1]).map(
         (item) => item.label,
       ),
-    ).toContain('Group Admin')
-    expect(
-      navigationForMember(memberWithRoles('approver'), groups[0]).map(
-        (item) => item.label,
-      ),
-    ).toContain('Approvals')
-    expect(
-      navigationForMember(memberWithRoles('admin'), groups[0]).map(
-        (item) => item.label,
-      ),
-    ).not.toContain('Group Admin')
-    expect(
-      navigationForMember(memberWithRoles('admin'), groups[0]).map(
-        (item) => item.label,
-      ),
-    ).toContain('Global Admin')
+
+).toContain('Group Admin')
+expect(
+  navigationForMember(memberWithRoles('group_admin'), groups[1]).map(
+    (item) => item.label,
+  ),
+).not.toContain('Approvals')
+expect(
+  navigationForMember(memberWithRoles('approver'), groups[0]).map(
+    (item) => item.label,
+  ),
+).toContain('Approvals')
+expect(
+  navigationForMember(memberWithRoles('admin'), groups[0]).map(
+    (item) => item.label,
+  ),
+).not.toContain('Group Admin')
+expect(
+  navigationForMember(memberWithRoles('admin'), groups[0]).map(
+    (item) => item.label,
+  ),
+).toContain('Global Admin')
   })
 
   it('selects the only group by default and honours a valid selected group', () => {
@@ -62,11 +68,12 @@ describe('member access', () => {
     expect(
       canManageActiveGroup(memberWithRoles('group_admin'), groups[1]),
     ).toBe(true)
-    expect(canManageActiveGroup(memberWithRoles('admin'), groups[0])).toBe(true)
-  })
+expect(canManageActiveGroup(memberWithRoles('admin'), groups[0])).toBe(true)
+})
 
-  it('recognizes both current-member Global Admin role values during migration', () => {
-    expect(isGlobalAdmin(memberWithRoles('admin'))).toBe(true)
-    expect(isGlobalAdmin(memberWithRoles('global_admin'))).toBe(true)
+it('recognizes both current-member Global Admin role values during migration', () => {
+  expect(isGlobalAdmin(memberWithRoles('admin'))).toBe(true)
+  expect(isGlobalAdmin(memberWithRoles('global_admin'))).toBe(true)
+})
   })
 })

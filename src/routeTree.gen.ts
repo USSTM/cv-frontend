@@ -20,6 +20,7 @@ import { Route as CartRouteImport } from './routes/cart'
 import { Route as ApprovalsRouteImport } from './routes/approvals'
 import { Route as ActivityRouteImport } from './routes/activity'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CatalogItemIdRouteImport } from './routes/catalog.$itemId'
 
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
@@ -76,32 +77,39 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CatalogItemIdRoute = CatalogItemIdRouteImport.update({
+  id: '/$itemId',
+  path: '/$itemId',
+  getParentRoute: () => CatalogRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/activity': typeof ActivityRoute
   '/approvals': typeof ApprovalsRoute
   '/cart': typeof CartRoute
-  '/catalog': typeof CatalogRoute
+  '/catalog': typeof CatalogRouteWithChildren
   '/checkout': typeof CheckoutRoute
   '/global-admin': typeof GlobalAdminRoute
   '/group-admin': typeof GroupAdminRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRoute
+  '/catalog/$itemId': typeof CatalogItemIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/activity': typeof ActivityRoute
   '/approvals': typeof ApprovalsRoute
   '/cart': typeof CartRoute
-  '/catalog': typeof CatalogRoute
+  '/catalog': typeof CatalogRouteWithChildren
   '/checkout': typeof CheckoutRoute
   '/global-admin': typeof GlobalAdminRoute
   '/group-admin': typeof GroupAdminRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRoute
+  '/catalog/$itemId': typeof CatalogItemIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -109,13 +117,14 @@ export interface FileRoutesById {
   '/activity': typeof ActivityRoute
   '/approvals': typeof ApprovalsRoute
   '/cart': typeof CartRoute
-  '/catalog': typeof CatalogRoute
+  '/catalog': typeof CatalogRouteWithChildren
   '/checkout': typeof CheckoutRoute
   '/global-admin': typeof GlobalAdminRoute
   '/group-admin': typeof GroupAdminRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRoute
+  '/catalog/$itemId': typeof CatalogItemIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -131,6 +140,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/notifications'
     | '/settings'
+    | '/catalog/$itemId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/notifications'
     | '/settings'
+    | '/catalog/$itemId'
   id:
     | '__root__'
     | '/'
@@ -157,6 +168,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/notifications'
     | '/settings'
+    | '/catalog/$itemId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -164,7 +176,7 @@ export interface RootRouteChildren {
   ActivityRoute: typeof ActivityRoute
   ApprovalsRoute: typeof ApprovalsRoute
   CartRoute: typeof CartRoute
-  CatalogRoute: typeof CatalogRoute
+  CatalogRoute: typeof CatalogRouteWithChildren
   CheckoutRoute: typeof CheckoutRoute
   GlobalAdminRoute: typeof GlobalAdminRoute
   GroupAdminRoute: typeof GroupAdminRoute
@@ -252,15 +264,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/catalog/$itemId': {
+      id: '/catalog/$itemId'
+      path: '/$itemId'
+      fullPath: '/catalog/$itemId'
+      preLoaderRoute: typeof CatalogItemIdRouteImport
+      parentRoute: typeof CatalogRoute
+    }
   }
 }
+
+interface CatalogRouteChildren {
+  CatalogItemIdRoute: typeof CatalogItemIdRoute
+}
+
+const CatalogRouteChildren: CatalogRouteChildren = {
+  CatalogItemIdRoute: CatalogItemIdRoute,
+}
+
+const CatalogRouteWithChildren =
+  CatalogRoute._addFileChildren(CatalogRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActivityRoute: ActivityRoute,
   ApprovalsRoute: ApprovalsRoute,
   CartRoute: CartRoute,
-  CatalogRoute: CatalogRoute,
+  CatalogRoute: CatalogRouteWithChildren,
   CheckoutRoute: CheckoutRoute,
   GlobalAdminRoute: GlobalAdminRoute,
   GroupAdminRoute: GroupAdminRoute,

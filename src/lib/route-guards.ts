@@ -1,10 +1,10 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { redirect } from '@tanstack/react-router'
+import type { CurrentMember } from '@/api/generated/types.gen'
 import { ApiError } from '@/api/client'
 import { getCurrentMember } from '@/api/member'
 import { currentMemberQueryKey } from '@/api/session-queries'
-import { isGlobalAdmin } from './member-access'
-
+import { isGlobalAdmin, hasRole } from '@/lib/member-access'
 export async function requireAuth({
   context,
 }: {
@@ -22,7 +22,6 @@ export async function requireAuth({
     throw error
   }
 }
-
 async function currentMemberFor({
   context,
 }: {
@@ -33,6 +32,18 @@ async function currentMemberFor({
     queryKey: currentMemberQueryKey,
     queryFn: getCurrentMember,
   })
+}
+
+export async function requireApprover({
+  context,
+}: {
+  context: { queryClient: QueryClient }
+}) {
+  const member = await currentMemberFor({ context })
+
+  if (!hasRole(member, 'approver')) {
+    throw redirect({ to: '/' })
+  }
 }
 
 export async function requireGroupAdmin({
@@ -60,6 +71,7 @@ export async function requireGlobalAdmin({
   if (!isGlobalAdmin(member)) {
     throw redirect({ to: '/' })
   }
+}
 }
 
 export async function redirectIfAuthenticated({

@@ -9,10 +9,15 @@ import {
 } from 'lucide-react'
 import { useMemo } from 'react'
 
+import {
+  useCartQuery,
+  useRemoveCartItemMutation,
+  useUpdateCartItemQuantityMutation,
+} from '@/api/catalog-queries'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { itemTypeClass, useDemo } from '@/demo/DemoContext'
 import { useActiveGroup } from '@/lib/active-group'
+import { itemTypeClass, itemTypeLabels } from '@/lib/item-type'
 import { requireAuth } from '@/lib/route-guards'
 
 export const Route = createFileRoute('/cart')({
@@ -21,8 +26,11 @@ export const Route = createFileRoute('/cart')({
 })
 
 function CartPage() {
-  const { cart, updateCartQuantity, removeFromCart } = useDemo()
   const { activeGroup } = useActiveGroup()
+  const cartQuery = useCartQuery(activeGroup?.id)
+  const updateQuantity = useUpdateCartItemQuantityMutation()
+  const removeItem = useRemoveCartItemMutation()
+  const cart = cartQuery.data ?? []
   const itemCount = useMemo(
     () => cart.reduce((count, item) => count + item.quantity, 0),
     [cart],
@@ -43,7 +51,11 @@ function CartPage() {
           </div>
           <ActiveGroup group={activeGroup?.name ?? 'No Active Group'} />
         </div>
-        {cart.length > 0 ? (
+        {cartQuery.isLoading ? (
+          <CartLoading />
+        ) : cartQuery.isError ? (
+          <CartError onRetry={() => cartQuery.refetch()} />
+        ) : cart.length > 0 ? (
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
             <section
               className="island-shell overflow-hidden rounded-2xl"
@@ -63,7 +75,7 @@ function CartPage() {
               </div>
               <ul className="divide-y divide-(--line)">
                 {cart.map((item) => (
-                  <li key={item.id} className="p-5 sm:p-6">
+                  <li key={item.itemId} className="p-5 sm:p-6">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex min-w-0 items-start gap-4">
                         <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[rgba(79,184,178,0.14)] text-(--lagoon-deep)">
@@ -72,28 +84,37 @@ function CartPage() {
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
                             <h3 className="font-semibold text-(--sea-ink)">
-                              {item.title}
+                              {item.itemName}
                             </h3>
-                            <Badge className={itemTypeClass(item.type)}>
-                              {item.type}
+                            <Badge className={itemTypeClass(item.itemType)}>
+                              {itemTypeLabels[item.itemType]}
                             </Badge>
                           </div>
                           <p className="mt-1 text-sm text-(--sea-ink-soft)">
-                            {item.category} · {item.stock} available
+                            {item.stock} available
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center justify-between gap-4 sm:justify-end">
                         <div
                           className="flex items-center rounded-lg border border-(--line) bg-white"
-                          aria-label={`Quantity for ${item.title}`}
+                          aria-label={`Quantity for ${item.itemName}`}
                         >
                           <button
                             type="button"
                             className="flex size-9 items-center justify-center rounded-l-lg hover:bg-(--sand) disabled:opacity-40"
-                            onClick={() => updateCartQuantity(item.id, -1)}
-                            disabled={item.quantity === 1}
-                            aria-label={`Decrease quantity of ${item.title}`}
+                            onClick={() =>
+                              activeGroup &&
+                              updateQuantity.mutate({
+                                groupId: activeGroup.id,
+                                itemId: item.itemId,
+                                quantity: item.quantity - 1,
+                              })
+                            }
+                            disabled={
+                              item.quantity === 1 || updateQuantity.isPending
+                            }
+                            aria-label={`Decrease quantity of ${item.itemName}`}
                           >
                             <Minus aria-hidden="true" size={16} />
                           </button>
@@ -103,9 +124,19 @@ function CartPage() {
                           <button
                             type="button"
                             className="flex size-9 items-center justify-center rounded-r-lg hover:bg-(--sand) disabled:opacity-40"
-                            onClick={() => updateCartQuantity(item.id, 1)}
-                            disabled={item.quantity === item.stock}
-                            aria-label={`Increase quantity of ${item.title}`}
+                            onClick={() =>
+                              activeGroup &&
+                              updateQuantity.mutate({
+                                groupId: activeGroup.id,
+                                itemId: item.itemId,
+                                quantity: item.quantity + 1,
+                              })
+                            }
+                            disabled={
+                              item.quantity === item.stock ||
+                              updateQuantity.isPending
+                            }
+                            aria-label={`Increase quantity of ${item.itemName}`}
                           >
                             <Plus aria-hidden="true" size={16} />
                           </button>
@@ -113,8 +144,15 @@ function CartPage() {
                         <button
                           type="button"
                           className="flex size-9 items-center justify-center rounded-lg text-(--sea-ink-soft) hover:bg-red-50 hover:text-red-700"
-                          onClick={() => removeFromCart(item.id)}
-                          aria-label={`Remove ${item.title} from cart`}
+                          onClick={() =>
+                            activeGroup &&
+                            removeItem.mutate({
+                              groupId: activeGroup.id,
+                              itemId: item.itemId,
+                            })
+                          }
+                          disabled={removeItem.isPending}
+                          aria-label={`Remove ${item.itemName} from cart`}
                         >
                           <Trash2 aria-hidden="true" size={18} />
                         </button>
@@ -159,6 +197,32 @@ function CartPage() {
         )}
       </section>
     </main>
+  )
+}
+
+function CartLoading() {
+  return (
+    <section className="island-shell rounded-2xl p-6">
+      <div className="animate-pulse space-y-5">
+        <div className="h-6 w-40 rounded bg-(--foam)" />
+        <div className="h-20 rounded bg-(--foam)" />
+        <div className="h-20 rounded bg-(--foam)" />
+      </div>
+    </section>
+  )
+}
+
+function CartError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <section className="island-shell mx-auto max-w-xl rounded-2xl px-6 py-12 text-center">
+      <h2 className="text-xl font-semibold">Cart unavailable</h2>
+      <p className="mt-2 text-sm text-(--sea-ink-soft)">
+        We could not load this Active Group's Cart.
+      </p>
+      <Button className="btn-inv mt-5" onClick={onRetry}>
+        Try again
+      </Button>
+    </section>
   )
 }
 
