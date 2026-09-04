@@ -8,6 +8,9 @@ import {
 } from './client'
 import { client } from './client.gen'
 import type {
+  AcceptInvitationData,
+  AcceptInvitationErrors,
+  AcceptInvitationResponses,
   AddToCartData,
   AddToCartErrors,
   AddToCartResponses,
@@ -320,6 +323,27 @@ export const verifyOtp = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     url: '/auth/verify-otp',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+
+/**
+ * Accept an invitation
+ *
+ * Consumes a valid invitation code, creates the invited user if needed, and assigns the invited role. Sign in with email OTP afterwards.
+ */
+export const acceptInvitation = <ThrowOnError extends boolean = false>(
+  options: Options<AcceptInvitationData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    AcceptInvitationResponses,
+    AcceptInvitationErrors,
+    ThrowOnError
+  >({
+    url: '/auth/invitations/accept',
     ...options,
     headers: {
       'Content-Type': 'application/json',

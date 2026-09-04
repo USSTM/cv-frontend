@@ -183,6 +183,13 @@ export type VerifyOtpRequest = {
   code: string
 }
 
+export type AcceptInvitationRequest = {
+  /**
+   * The one-time invitation code supplied in the invitation link.
+   */
+  code: string
+}
+
 export type TokenResponse = {
   access_token: string
   refresh_token: string
@@ -704,6 +711,37 @@ export type VerifyOtpResponses = {
 }
 
 export type VerifyOtpResponse = VerifyOtpResponses[keyof VerifyOtpResponses]
+
+export type AcceptInvitationData = {
+  body: AcceptInvitationRequest
+  path?: never
+  query?: never
+  url: '/auth/invitations/accept'
+}
+
+export type AcceptInvitationErrors = {
+  /**
+   * Invitation code is invalid, expired, or already used
+   */
+  400: Error
+  /**
+   * Internal Server Error
+   */
+  500: Error
+}
+
+export type AcceptInvitationError =
+  AcceptInvitationErrors[keyof AcceptInvitationErrors]
+
+export type AcceptInvitationResponses = {
+  /**
+   * Invitation accepted
+   */
+  200: MessageResponse
+}
+
+export type AcceptInvitationResponse =
+  AcceptInvitationResponses[keyof AcceptInvitationResponses]
 
 export type RefreshTokenData = {
   body?: RefreshRequest

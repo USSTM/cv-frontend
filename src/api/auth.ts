@@ -1,4 +1,5 @@
 import type {
+  AcceptInvitationRequest,
   MessageResponse,
   RequestOtpRequest,
   SessionResponse,
@@ -15,6 +16,13 @@ export function requestOtp(body: RequestOtpRequest) {
 
 export function verifyOtp(body: VerifyOtpRequest) {
   return apiRequest<SessionResponse>('/auth/verify-otp', {
+    method: 'POST',
+    body,
+  })
+}
+
+export function acceptInvitation(body: AcceptInvitationRequest) {
+  return apiRequest<MessageResponse>('/auth/invitations/accept', {
     method: 'POST',
     body,
   })
