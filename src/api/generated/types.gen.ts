@@ -12,6 +12,32 @@ export type User = {
   role: UserRole
 }
 
+export type UserUpdate = {
+  /**
+   * Complete replacement of the member's role assignments.
+   */
+  roles: Array<UserRoleAssignment>
+}
+
+export type UserRoleAssignment = {
+  /**
+   * One of global_admin, approver, group_admin, or member.
+   */
+  role_name: string
+  /**
+   * Either global or group.
+   */
+  scope: string
+  scope_id?: Uuid
+}
+
+export type GroupMembershipUpdate = {
+  /**
+   * Whether the member belongs to this group.
+   */
+  is_member: boolean
+}
+
 export type MemberRole = {
   name: string
   scope: 'global' | 'group'
@@ -1971,6 +1997,47 @@ export type GetUsersByGroupResponses = {
 export type GetUsersByGroupResponse =
   GetUsersByGroupResponses[keyof GetUsersByGroupResponses]
 
+export type GetUserRoleAssignmentsData = {
+  body?: never
+  path: {
+    userId: Uuid
+  }
+  query?: never
+  url: '/admin/users/{userId}/roles'
+}
+
+export type GetUserRoleAssignmentsErrors = {
+  /**
+   * Unauthorized
+   */
+  401: Error
+  /**
+   * Insufficient permissions
+   */
+  403: Error
+  /**
+   * User not found
+   */
+  404: Error
+  /**
+   * Internal Server Error
+   */
+  500: Error
+}
+
+export type GetUserRoleAssignmentsError =
+  GetUserRoleAssignmentsErrors[keyof GetUserRoleAssignmentsErrors]
+
+export type GetUserRoleAssignmentsResponses = {
+  /**
+   * Member role assignments
+   */
+  200: Array<UserRoleAssignment>
+}
+
+export type GetUserRoleAssignmentsResponse =
+  GetUserRoleAssignmentsResponses[keyof GetUserRoleAssignmentsResponses]
+
 export type GetMyPreferencesData = {
   body?: never
   path?: never
@@ -2037,6 +2104,45 @@ export type UpdateMyPreferencesResponses = {
 export type UpdateMyPreferencesResponse =
   UpdateMyPreferencesResponses[keyof UpdateMyPreferencesResponses]
 
+export type DeleteUserData = {
+  body?: never
+  path: {
+    userId: Uuid
+  }
+  query?: never
+  url: '/users/{userId}'
+}
+
+export type DeleteUserErrors = {
+  /**
+   * Unauthorized
+   */
+  401: Error
+  /**
+   * Insufficient permissions
+   */
+  403: Error
+  /**
+   * User not found
+   */
+  404: Error
+  /**
+   * Internal Server Error
+   */
+  500: Error
+}
+
+export type DeleteUserError = DeleteUserErrors[keyof DeleteUserErrors]
+
+export type DeleteUserResponses = {
+  /**
+   * Member deleted
+   */
+  204: void
+}
+
+export type DeleteUserResponse = DeleteUserResponses[keyof DeleteUserResponses]
+
 export type GetUserByIdData = {
   body?: never
   path: {
@@ -2079,6 +2185,95 @@ export type GetUserByIdResponses = {
 
 export type GetUserByIdResponse =
   GetUserByIdResponses[keyof GetUserByIdResponses]
+
+export type UpdateUserData = {
+  body: UserUpdate
+  path: {
+    userId: Uuid
+  }
+  query?: never
+  url: '/users/{userId}'
+}
+
+export type UpdateUserErrors = {
+  /**
+   * Invalid request
+   */
+  400: Error
+  /**
+   * Unauthorized
+   */
+  401: Error
+  /**
+   * Insufficient permissions
+   */
+  403: Error
+  /**
+   * User not found
+   */
+  404: Error
+  /**
+   * Internal Server Error
+   */
+  500: Error
+}
+
+export type UpdateUserError = UpdateUserErrors[keyof UpdateUserErrors]
+
+export type UpdateUserResponses = {
+  /**
+   * Updated member
+   */
+  200: User
+}
+
+export type UpdateUserResponse = UpdateUserResponses[keyof UpdateUserResponses]
+
+export type UpdateUserGroupMembershipData = {
+  body: GroupMembershipUpdate
+  path: {
+    userId: Uuid
+    groupId: Uuid
+  }
+  query?: never
+  url: '/users/{userId}/groups/{groupId}'
+}
+
+export type UpdateUserGroupMembershipErrors = {
+  /**
+   * Invalid request
+   */
+  400: Error
+  /**
+   * Unauthorized
+   */
+  401: Error
+  /**
+   * Insufficient permissions
+   */
+  403: Error
+  /**
+   * User or group not found
+   */
+  404: Error
+  /**
+   * Internal Server Error
+   */
+  500: Error
+}
+
+export type UpdateUserGroupMembershipError =
+  UpdateUserGroupMembershipErrors[keyof UpdateUserGroupMembershipErrors]
+
+export type UpdateUserGroupMembershipResponses = {
+  /**
+   * Membership updated
+   */
+  204: void
+}
+
+export type UpdateUserGroupMembershipResponse =
+  UpdateUserGroupMembershipResponses[keyof UpdateUserGroupMembershipResponses]
 
 export type GetUserByEmailData = {
   body?: never

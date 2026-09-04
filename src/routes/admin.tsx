@@ -6,11 +6,32 @@ import {
   Globe2,
   LockKeyhole,
   PackageCheck,
+  Pencil,
   Settings2,
+  Trash2,
   UsersRound,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
+import {
+  useCreateGroupMutation,
+  useDeleteGroupMutation,
+  useGroupsQuery,
+  useInviteMemberMutation,
+  useManagedMembersQuery,
+  useMemberRolesQuery,
+  useMembersRolesQueries,
+  useUpdateMemberGroupMembershipMutation,
+  useUpdateMemberRolesMutation,
+  useUpdateGroupMutation,
+} from '@/api/admin-queries'
+import type {
+  Group,
+  GroupUser,
+  User,
+  UserRoleAssignment,
+} from '@/api/generated/types.gen'
+import { useCurrentMemberQuery } from '@/api/session-queries'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -25,7 +46,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { useDemo } from '@/demo/DemoContext'
 import { useActiveGroup } from '@/lib/active-group'
-import { useCurrentMemberQuery } from '@/api/session-queries'
 import { hasRole } from '@/lib/member-access'
 import { requireAuth } from '@/lib/route-guards'
 
@@ -33,83 +53,91 @@ export const Route = createFileRoute('/admin')({
   beforeLoad: requireAuth,
   component: AdminPage,
 })
-
-type AdminView = 'members' | 'catalog' | 'group' | 'system'
-
-type Member = {
-  id: string
-  name: string
-  email: string
-  role: 'Member' | 'Group Admin'
-}
-
-export const initialMembers: Member[] = [
-  {
-    id: 'maya-patel',
-    name: 'Maya Patel',
-    email: 'maya.patel@usstm.edu',
-    role: 'Member',
-  },
-  {
-    id: 'noah-williams',
-    name: 'Noah Williams',
-    email: 'noah.williams@usstm.edu',
-    role: 'Member',
-  },
-  {
-    id: 'jordan-lee',
-    name: 'Jordan Lee',
-    email: 'jordan.lee@usstm.edu',
-    role: 'Group Admin',
-  },
-]
-
-export const catalogItems = [
-  {
-    id: 'macbook-charger',
-    title: 'MacBook Charger',
-    type: 'Borrow',
-    stock: '5 available',
-  },
-  {
-    id: 'arduino-kit',
-    title: 'Arduino Kit',
-    type: 'Request',
-    stock: '1 available',
-  },
-  {
-    id: 'notebook-bundle',
-    title: 'Notebook Bundle',
-    type: 'Take',
-    stock: '20 available',
-  },
-]
+type AdminView = 'members' | 'groups' | 'catalog' | 'group' | 'system'
+type ManagedMember = { id: string; email: string; role: string }
 
 function AdminPage() {
-  const {
-    members: memberList,
-    addMember: addDemoMember,
-    items,
-    borrowings,
-  } = useDemo()
+  const { items, borrowings } = useDemo()
   const { activeGroup } = useActiveGroup()
   const { data: currentMember } = useCurrentMemberQuery()
-  const currentRole = currentMember && hasRole(currentMember, 'global_admin')
-    ? 'Global Admin'
-    : 'Group Admin'
+  const isGlobalAdmin = currentMember
+    ? hasRole(currentMember, 'global_admin')
+    : false
+  const {
+    data: users = [],
+    isLoading,
+    error,
+  } = useManagedMembersQuery(activeGroup?.id, isGlobalAdmin)
+  const members = toManagedMembers(users)
   const [view, setView] = useState<AdminView>('members')
-  const [addMemberOpen, setAddMemberOpen] = useState(false)
-  const [newMember, setNewMember] = useState({ name: '', email: '' })
+  const [adding, setAdding] = useState(false)
+  const [editing, setEditing] = useState<ManagedMember | null>(null)
+  const [email, setEmail] = useState('')
+  const [isMember, setIsMember] = useState(true)
+  const [creatingGroup, setCreatingGroup] = useState(false)
+  const [groupToDelete, setGroupToDelete] = useState<Group | null>(null)
+  const [groupToEdit, setGroupToEdit] = useState<Group | null>(null)
+  const [newGroup, setNewGroup] = useState({ name: '', description: '' })
+  const [editedGroup, setEditedGroup] = useState({ name: '', description: '' })
+  const invite = useInviteMemberMutation()
+  const updateMembership = useUpdateMemberGroupMembershipMutation()
+  const groupsQuery = useGroupsQuery(isGlobalAdmin)
+  const memberRolesQuery = useMembersRolesQueries(
+    members.map((member) => member.id),
+    isGlobalAdmin,
+  )
+  const createGroup = useCreateGroupMutation()
+  const deleteGroup = useDeleteGroupMutation()
+  const updateGroup = useUpdateGroupMutation()
+  const title = isGlobalAdmin ? 'Global administration' : 'Group administration'
 
   function addMember() {
-    const name = newMember.name.trim()
-    const email = newMember.email.trim()
-
-    if (!name || !email) return
-
-    addDemoMember(name, email)
-    setNewMember({ name: '', email: '' })
-    setAddMemberOpen(false)
+    if (!email.trim()) return
+    invite.mutate(
+      {
+        email: email.trim(),
+        role_name: 'member',
+        scope: isGlobalAdmin ? 'global' : 'group',
+        scope_id: isGlobalAdmin ? undefined : activeGroup?.id,
+      },
+      {
+        onSuccess: () => {
+          setEmail('')
+          setAdding(false)
+        },
+      },
+    )
+  }
+  function saveMembership() {
+    if (!editing || !activeGroup) return
+    updateMembership.mutate(
+      { userId: editing.id, groupId: activeGroup.id, isMember },
+      { onSuccess: () => setEditing(null) },
+    )
+  }
+  function saveGroup() {
+    const name = newGroup.name.trim()
+    if (!name) return
+    createGroup.mutate(
+      { name, description: newGroup.description.trim() || undefined },
+      {
+        onSuccess: () => {
+          setNewGroup({ name: '', description: '' })
+          setCreatingGroup(false)
+        },
+      },
+    )
+  }
+  function saveEditedGroup() {
+    if (!groupToEdit || !editedGroup.name.trim()) return
+    updateGroup.mutate(
+      {
+        groupId: groupToEdit.id,
+        name: editedGroup.name.trim(),
+        description: editedGroup.description.trim() || undefined,
+      },
+      { onSuccess: () => setGroupToEdit(null) },
+    )
   }
 
   return (
@@ -117,35 +145,33 @@ function AdminPage() {
       <section className="mx-auto max-w-5xl space-y-8">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="island-kicker mb-2 text-(--kicker)!">
-              Group administration
-            </p>
+            <p className="island-kicker mb-2 text-(--kicker)!">{title}</p>
             <h1 className="display-title text-3xl font-bold">Admin</h1>
             <p className="mt-2 max-w-2xl text-(--sea-ink-soft)">
-              Manage the members and operational data for your Active Group.
+              {isGlobalAdmin
+                ? 'Manage member access and roles across Campus Vault.'
+                : 'Manage members and operational data for your Active Group.'}
             </p>
           </div>
           <div className="rounded-xl border border-(--line) bg-white px-4 py-3 shadow-sm">
             <p className="text-xs font-semibold tracking-wide text-(--sea-ink-soft) uppercase">
-              Active Group
+              {isGlobalAdmin ? 'Access level' : 'Active Group'}
             </p>
             <p className="mt-1 text-sm font-semibold text-(--sea-ink)">
-              {activeGroup?.name ?? 'No Active Group'}
+              {isGlobalAdmin
+                ? 'All groups'
+                : (activeGroup?.name ?? 'No Active Group')}
             </p>
             <Badge className="mt-2 border-sky-200 bg-sky-50 text-sky-800">
-              {currentRole}
+              {isGlobalAdmin ? 'Global Admin' : 'Group Admin'}
             </Badge>
           </div>
         </div>
-
-        <section
-          className="grid gap-4 sm:grid-cols-3"
-          aria-label="Group summary"
-        >
+        <section className="grid gap-4 sm:grid-cols-3">
           <SummaryCard
             icon={UsersRound}
-            label="Active members"
-            value={String(memberList.length)}
+            label={isGlobalAdmin ? 'Managed members' : 'Active members'}
+            value={String(members.length)}
           />
           <SummaryCard
             icon={Boxes}
@@ -156,26 +182,26 @@ function AdminPage() {
             icon={PackageCheck}
             label="Items currently out"
             value={String(
-              borrowings.filter((borrowing) => borrowing.status === 'Active')
-                .length,
+              borrowings.filter((b) => b.status === 'Active').length,
             )}
           />
         </section>
-
         <section className="island-shell overflow-hidden rounded-2xl">
           <div className="flex flex-col gap-4 border-b border-(--line) px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <div>
-              <h2 className="text-lg font-semibold">Group management</h2>
+              <h2 className="text-lg font-semibold">
+                {isGlobalAdmin ? 'Member management' : 'Group management'}
+              </h2>
               <p className="mt-1 text-sm text-(--sea-ink-soft)">
-                Maintain your group’s access and catalog information. Additional
-                areas can move into dedicated routes as workflows grow.
+                {isGlobalAdmin
+                  ? 'Update member roles and group access.'
+                  : 'Maintain your group’s access and catalog information.'}
               </p>
             </div>
             <Button asChild className="btn-inv w-fit">
               <Link to="/catalog">View Catalog</Link>
             </Button>
           </div>
-
           <div className="border-b border-(--line) px-5 sm:px-6">
             <div
               className="flex flex-wrap gap-2"
@@ -188,6 +214,14 @@ function AdminPage() {
               >
                 Members
               </AdminTab>
+              {isGlobalAdmin && (
+                <AdminTab
+                  active={view === 'groups'}
+                  onClick={() => setView('groups')}
+                >
+                  Groups
+                </AdminTab>
+              )}
               <AdminTab
                 active={view === 'catalog'}
                 onClick={() => setView('catalog')}
@@ -208,66 +242,129 @@ function AdminPage() {
               </AdminTab>
             </div>
           </div>
-
           {view === 'members' && (
             <div className="px-5 py-5 sm:px-6">
               <div className="mb-5 flex items-center justify-between gap-4">
                 <div>
-                  <h3 className="font-semibold">Group members</h3>
+                  <h3 className="font-semibold">
+                    {isGlobalAdmin ? 'All members' : 'Group members'}
+                  </h3>
                   <p className="mt-1 text-sm text-(--sea-ink-soft)">
-                    Members who can access this group’s Catalog.
+                    {isGlobalAdmin
+                      ? 'Global Admins can edit role assignments and access.'
+                      : 'Edit membership for the current group.'}
                   </p>
                 </div>
                 <Button
                   variant="outline"
                   className="border-(--line)"
-                  onClick={() => setAddMemberOpen(true)}
+                  onClick={() => setAdding(true)}
+                  disabled={!isGlobalAdmin && !activeGroup}
                 >
                   Add member
                 </Button>
               </div>
-              <ul className="divide-y divide-(--line) rounded-xl border border-(--line)">
-                {memberList.map((member) => (
-                  <li
-                    key={member.id}
-                    className="flex items-center justify-between gap-4 p-4 sm:p-5"
-                  >
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[rgba(79,184,178,0.14)] text-(--lagoon-deep)">
-                        <CircleUserRound aria-hidden="true" size={20} />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-semibold text-(--sea-ink)">
-                          {member.name}
-                        </p>
-                        <p className="truncate text-sm text-(--sea-ink-soft)">
-                          {member.email}
-                        </p>
-                      </div>
-                    </div>
-                    <Badge
-                      className={
-                        member.role === 'Group Admin'
-                          ? 'border-sky-200 bg-sky-50 text-sky-800'
-                          : 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                      }
-                    >
-                      {member.role}
-                    </Badge>
-                  </li>
-                ))}
-              </ul>
+              {isGlobalAdmin ? (
+                <GlobalMemberLists
+                  members={members}
+                  loading={isLoading || memberRolesQuery.isLoading}
+                  error={error}
+                  currentMemberId={currentMember?.id}
+                  assignments={memberRolesQuery.assignments}
+                  groups={groupsQuery.data ?? []}
+                  onEdit={(member) => {
+                    if (member.id === currentMember?.id) return
+                    setEditing(member)
+                  }}
+                />
+              ) : (
+                <MemberList
+                  members={members}
+                  loading={isLoading}
+                  error={error}
+                  onEdit={(member) => {
+                    setIsMember(true)
+                    setEditing(member)
+                  }}
+                />
+              )}
             </div>
           )}
-
+          {view === 'groups' && isGlobalAdmin && (
+            <div className="px-5 py-5 sm:px-6">
+              <div className="mb-5 flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-semibold">All groups</h3>
+                  <p className="mt-1 text-sm text-(--sea-ink-soft)">
+                    Create and remove Campus Vault groups.
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  className="border-(--line)"
+                  onClick={() => setCreatingGroup(true)}
+                >
+                  Create group
+                </Button>
+              </div>
+              {groupsQuery.isLoading ? (
+                <p className="text-sm text-(--sea-ink-soft)">Loading groups…</p>
+              ) : groupsQuery.error ? (
+                <ErrorText error={groupsQuery.error} />
+              ) : (
+                <ul className="divide-y divide-(--line) rounded-xl border border-(--line)">
+                  {(groupsQuery.data ?? []).map((group) => (
+                    <li
+                      key={group.id}
+                      className="flex items-center justify-between gap-4 p-4 sm:p-5"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-semibold text-(--sea-ink)">
+                          {group.name}
+                        </p>
+                        {group.description && (
+                          <p className="mt-1 truncate text-sm text-(--sea-ink-soft)">
+                            {group.description}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="border-(--line)"
+                          aria-label={`Edit ${group.name}`}
+                          onClick={() => {
+                            setEditedGroup({
+                              name: group.name,
+                              description: group.description ?? '',
+                            })
+                            setGroupToEdit(group)
+                          }}
+                        >
+                          <Pencil aria-hidden="true" size={16} />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="border-red-200 text-red-700 hover:bg-red-50"
+                          aria-label={`Delete ${group.name}`}
+                          onClick={() => setGroupToDelete(group)}
+                        >
+                          <Trash2 aria-hidden="true" size={16} />
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
           {view === 'catalog' && (
             <div className="px-5 py-5 sm:px-6">
-              <div className="mb-5">
-                <h3 className="font-semibold">Catalog overview</h3>
-                <p className="mt-1 text-sm text-(--sea-ink-soft)">
-                  Availability for items managed by your group.
-                </p>
-              </div>
+              <h3 className="mb-5 font-semibold">Catalog overview</h3>
               <ul className="divide-y divide-(--line) rounded-xl border border-(--line)">
                 {items.map((item) => (
                   <li
@@ -290,7 +387,6 @@ function AdminPage() {
               </ul>
             </div>
           )}
-
           {view === 'group' && (
             <div className="grid gap-5 px-5 py-5 sm:grid-cols-2 sm:px-6">
               <GroupDetail
@@ -301,12 +397,12 @@ function AdminPage() {
               <GroupDetail
                 icon={UsersRound}
                 label="Membership"
-                value={`${memberList.length} active members`}
+                value={`${members.length} active members`}
               />
               <GroupDetail
                 icon={Settings2}
                 label="Administrator access"
-                value="2 Group Admins"
+                value="Managed by role assignments"
               />
               <GroupDetail
                 icon={PackageCheck}
@@ -320,19 +416,20 @@ function AdminPage() {
               />
             </div>
           )}
-
           {view === 'system' && (
             <div className="px-5 py-5 sm:px-6">
-              <div className="rounded-xl border border-(--line) bg-(--foam) p-5 sm:p-6">
+              <div className="rounded-xl border border-(--line) bg-(--foam) p-5">
                 <div className="flex gap-3">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white text-(--lagoon-deep)">
-                    <LockKeyhole aria-hidden="true" size={20} />
-                  </div>
+                  <LockKeyhole
+                    aria-hidden="true"
+                    className="text-(--lagoon-deep)"
+                    size={20}
+                  />
                   <div>
                     <h3 className="font-semibold">Global Admin settings</h3>
-                    <p className="mt-1 max-w-xl text-sm leading-6 text-(--sea-ink-soft)">
-                      System-wide configuration, group provisioning, and
-                      permission management are reserved for Global Admins.
+                    <p className="mt-1 text-sm text-(--sea-ink-soft)">
+                      System-wide configuration and permission management are
+                      reserved for Global Admins.
                     </p>
                   </div>
                 </div>
@@ -341,32 +438,79 @@ function AdminPage() {
           )}
         </section>
       </section>
-
-      <Dialog open={addMemberOpen} onOpenChange={setAddMemberOpen}>
+      <Dialog open={adding} onOpenChange={setAdding}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add group member</DialogTitle>
+            <DialogTitle>Add member</DialogTitle>
             <DialogDescription>
-              Add a member to the current group.
+              {isGlobalAdmin
+                ? 'Invite a member to Campus Vault.'
+                : `Invite a member to ${activeGroup?.name ?? 'the current group'}.`}
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault()
+              addMember()
+            }}
+          >
+            <div>
+              <label htmlFor="member-email" className="text-sm font-semibold">
+                Email
+              </label>
+              <Input
+                id="member-email"
+                type="email"
+                className="mt-2"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            {invite.error && <ErrorText error={invite.error} />}
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline" className="border-(--line)">
+                  Cancel
+                </Button>
+              </DialogClose>
+              <Button
+                type="submit"
+                className="btn-inv"
+                disabled={invite.isPending}
+              >
+                {invite.isPending ? 'Inviting…' : 'Invite member'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={creatingGroup} onOpenChange={setCreatingGroup}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create group</DialogTitle>
+            <DialogDescription>
+              Create a new group for Campus Vault members and Catalog items.
             </DialogDescription>
           </DialogHeader>
           <form
             className="space-y-4"
             onSubmit={(event) => {
               event.preventDefault()
-              addMember()
+              saveGroup()
             }}
           >
             <div>
-              <label htmlFor="member-name" className="text-sm font-semibold">
-                Name
+              <label htmlFor="group-name" className="text-sm font-semibold">
+                Group name
               </label>
               <Input
-                id="member-name"
+                id="group-name"
                 className="mt-2"
-                value={newMember.name}
+                value={newGroup.name}
                 onChange={(event) =>
-                  setNewMember((current) => ({
+                  setNewGroup((current) => ({
                     ...current,
                     name: event.target.value,
                   }))
@@ -375,40 +519,524 @@ function AdminPage() {
               />
             </div>
             <div>
-              <label htmlFor="member-email" className="text-sm font-semibold">
-                Student email
+              <label
+                htmlFor="group-description"
+                className="text-sm font-semibold"
+              >
+                Description <span className="font-normal">(optional)</span>
               </label>
               <Input
-                id="member-email"
-                type="email"
+                id="group-description"
                 className="mt-2"
-                value={newMember.email}
+                value={newGroup.description}
                 onChange={(event) =>
-                  setNewMember((current) => ({
+                  setNewGroup((current) => ({
                     ...current,
-                    email: event.target.value,
+                    description: event.target.value,
                   }))
                 }
-                required
               />
             </div>
+            {createGroup.error && <ErrorText error={createGroup.error} />}
             <DialogFooter>
               <DialogClose asChild>
                 <Button variant="outline" className="border-(--line)">
                   Cancel
                 </Button>
               </DialogClose>
-              <Button type="submit" className="btn-inv">
-                Add member
+              <Button
+                type="submit"
+                className="btn-inv"
+                disabled={createGroup.isPending}
+              >
+                {createGroup.isPending ? 'Creating…' : 'Create group'}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+      <Dialog
+        open={Boolean(groupToDelete)}
+        onOpenChange={(open) => !open && setGroupToDelete(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete group</DialogTitle>
+            <DialogDescription>
+              Delete {groupToDelete?.name}? This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteGroup.error && <ErrorText error={deleteGroup.error} />}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline" className="border-(--line)">
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button
+              variant="destructive"
+              onClick={() =>
+                groupToDelete &&
+                deleteGroup.mutate(groupToDelete.id, {
+                  onSuccess: () => setGroupToDelete(null),
+                })
+              }
+              disabled={deleteGroup.isPending}
+            >
+              {deleteGroup.isPending ? 'Deleting…' : 'Delete group'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={Boolean(groupToEdit)}
+        onOpenChange={(open) => !open && setGroupToEdit(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit group</DialogTitle>
+            <DialogDescription>
+              Update this group’s name or description.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            className="space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault()
+              saveEditedGroup()
+            }}
+          >
+            <div>
+              <label
+                htmlFor="edit-group-name"
+                className="text-sm font-semibold"
+              >
+                Group name
+              </label>
+              <Input
+                id="edit-group-name"
+                className="mt-2"
+                value={editedGroup.name}
+                onChange={(event) =>
+                  setEditedGroup((current) => ({
+                    ...current,
+                    name: event.target.value,
+                  }))
+                }
+                required
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="edit-group-description"
+                className="text-sm font-semibold"
+              >
+                Description <span className="font-normal">(optional)</span>
+              </label>
+              <Input
+                id="edit-group-description"
+                className="mt-2"
+                value={editedGroup.description}
+                onChange={(event) =>
+                  setEditedGroup((current) => ({
+                    ...current,
+                    description: event.target.value,
+                  }))
+                }
+              />
+            </div>
+            {updateGroup.error && <ErrorText error={updateGroup.error} />}
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                className="border-(--line)"
+                onClick={() => setGroupToEdit(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="btn-inv"
+                disabled={updateGroup.isPending}
+              >
+                {updateGroup.isPending ? 'Saving…' : 'Save changes'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      {isGlobalAdmin ? (
+        <GlobalEditor member={editing} onClose={() => setEditing(null)} />
+      ) : (
+        <Dialog
+          open={Boolean(editing)}
+          onOpenChange={(open) => !open && setEditing(null)}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit group membership</DialogTitle>
+              <DialogDescription>
+                Control {editing?.email}’s access to{' '}
+                {activeGroup?.name ?? 'this group'}.
+              </DialogDescription>
+            </DialogHeader>
+            <label className="flex items-center gap-3 text-sm">
+              <input
+                type="checkbox"
+                checked={isMember}
+                onChange={(e) => setIsMember(e.target.checked)}
+              />
+              Member has access to this group
+            </label>
+            {updateMembership.error && (
+              <ErrorText error={updateMembership.error} />
+            )}
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline" className="border-(--line)">
+                  Cancel
+                </Button>
+              </DialogClose>
+              <Button
+                className="btn-inv"
+                onClick={saveMembership}
+                disabled={updateMembership.isPending}
+              >
+                {updateMembership.isPending ? 'Saving…' : 'Save changes'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </main>
   )
 }
 
+function GlobalEditor({
+  member,
+  onClose,
+}: {
+  member: ManagedMember | null
+  onClose: () => void
+}) {
+  const { data: groups = [] } = useGroupsQuery(Boolean(member))
+  const rolesQuery = useMemberRolesQuery(member?.id, Boolean(member))
+  const updateRoles = useUpdateMemberRolesMutation()
+  const [roles, setRoles] = useState<Array<UserRoleAssignment>>([])
+  useEffect(
+    () => setRoles(rolesQuery.data ?? []),
+    [rolesQuery.data, member?.id],
+  )
+  const update = (index: number, patch: Partial<UserRoleAssignment>) =>
+    setRoles((current) =>
+      current.map((role, i) => (i === index ? { ...role, ...patch } : role)),
+    )
+  return (
+    <Dialog open={Boolean(member)} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Edit member roles</DialogTitle>
+          <DialogDescription>
+            These assignments replace the member’s current roles. Group roles
+            require a group.
+          </DialogDescription>
+        </DialogHeader>
+        {rolesQuery.isLoading ? (
+          <p className="text-sm text-(--sea-ink-soft)">
+            Loading role assignments…
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {roles.map((role, index) => (
+              <div
+                key={`${index}-${role.role_name}`}
+                className="grid gap-2 rounded-lg border border-(--line) p-3 sm:grid-cols-[1fr_1fr_1fr_auto]"
+              >
+                <select
+                  aria-label="Role"
+                  className="h-9 rounded-md border border-(--line) bg-white px-2 text-sm"
+                  value={role.role_name}
+                  onChange={(e) => update(index, { role_name: e.target.value })}
+                >
+                  <option value="member">Member</option>
+                  <option value="group_admin">Group Admin</option>
+                  <option value="approver">Approver</option>
+                  <option value="global_admin">Global Admin</option>
+                </select>
+                <select
+                  aria-label="Scope"
+                  className="h-9 rounded-md border border-(--line) bg-white px-2 text-sm"
+                  value={role.scope}
+                  onChange={(e) =>
+                    update(index, {
+                      scope: e.target.value,
+                      scope_id:
+                        e.target.value === 'global'
+                          ? undefined
+                          : (role.scope_id ?? groups[0]?.id),
+                    })
+                  }
+                >
+                  <option value="global">Global</option>
+                  <option value="group">Group</option>
+                </select>
+                {role.scope === 'group' ? (
+                  <select
+                    aria-label="Group"
+                    className="h-9 rounded-md border border-(--line) bg-white px-2 text-sm"
+                    value={role.scope_id ?? ''}
+                    onChange={(e) =>
+                      update(index, { scope_id: e.target.value })
+                    }
+                  >
+                    <option value="" disabled>
+                      Select group
+                    </option>
+                    {groups.map((group) => (
+                      <option key={group.id} value={group.id}>
+                        {group.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span />
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-(--line)"
+                  onClick={() =>
+                    setRoles((current) => current.filter((_, i) => i !== index))
+                  }
+                >
+                  Remove
+                </Button>
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              className="border-(--line)"
+              onClick={() =>
+                setRoles((current) => [
+                  ...current,
+                  {
+                    role_name: 'member',
+                    scope: 'group',
+                    scope_id: groups[0]?.id,
+                  },
+                ])
+              }
+            >
+              Add role
+            </Button>
+          </div>
+        )}
+        {updateRoles.error && <ErrorText error={updateRoles.error} />}
+        <DialogFooter>
+          <Button
+            variant="outline"
+            className="border-(--line)"
+            onClick={onClose}
+          >
+            Cancel
+          </Button>
+          <Button
+            className="btn-inv"
+            onClick={() =>
+              member &&
+              updateRoles.mutate(
+                { userId: member.id, roles },
+                { onSuccess: onClose },
+              )
+            }
+            disabled={
+              rolesQuery.isLoading ||
+              updateRoles.isPending ||
+              roles.some((role) => role.scope === 'group' && !role.scope_id)
+            }
+          >
+            {updateRoles.isPending ? 'Saving…' : 'Save roles'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function toManagedMembers(users: Array<User> | Array<GroupUser>) {
+  const byId = new Map<string, ManagedMember>()
+  users.forEach((user) => {
+    const role = 'role_name' in user ? user.role_name : user.role
+    const existing = byId.get(user.id)
+    byId.set(
+      user.id,
+      !existing || priority(role) > priority(existing.role)
+        ? { id: user.id, email: user.email, role }
+        : existing,
+    )
+  })
+  return [...byId.values()]
+}
+function priority(role: string) {
+  return ['member', 'group_admin', 'approver', 'admin', 'global_admin'].indexOf(
+    role,
+  )
+}
+function label(role: string) {
+  return (
+    (
+      {
+        member: 'Member',
+        group_admin: 'Group Admin',
+        approver: 'Approver',
+        admin: 'Global Admin',
+        global_admin: 'Global Admin',
+      } as Record<string, string>
+    )[role] ?? role
+  )
+}
+function ErrorText({ error }: { error: unknown }) {
+  return (
+    <p className="text-sm text-red-700">
+      {error instanceof Error ? error.message : 'Unable to save changes.'}
+    </p>
+  )
+}
+function GlobalMemberLists({
+  members,
+  loading,
+  error,
+  currentMemberId,
+  assignments,
+  groups,
+  onEdit,
+}: {
+  members: Array<ManagedMember>
+  loading: boolean
+  error: unknown
+  currentMemberId?: string
+  assignments: Map<string, Array<UserRoleAssignment>>
+  groups: Array<Group>
+  onEdit: (member: ManagedMember) => void
+}) {
+  const groupNamesByMember = new Map<string, Array<string>>()
+  for (const member of members) {
+    const groupNames = (assignments.get(member.id) ?? [])
+      .filter((assignment) => assignment.scope === 'group')
+      .map(
+        (assignment) =>
+          groups.find((group) => group.id === assignment.scope_id)?.name,
+      )
+      .filter((name): name is string => Boolean(name))
+    groupNamesByMember.set(member.id, [...new Set(groupNames)])
+  }
+  const globalAdmins = members.filter(
+    (member) =>
+      member.role === 'admin' ||
+      (assignments.get(member.id) ?? []).some(
+        (assignment) =>
+          assignment.role_name === 'global_admin' &&
+          assignment.scope === 'global',
+      ),
+  )
+  const otherMembers = members.filter(
+    (member) => !globalAdmins.some((admin) => admin.id === member.id),
+  )
+  return (
+    <div className="space-y-7">
+      <section>
+        <h4 className="mb-3 text-sm font-semibold text-(--sea-ink)">
+          Global Admins
+        </h4>
+        <MemberList
+          members={globalAdmins}
+          loading={loading}
+          error={error}
+          currentMemberId={currentMemberId}
+          groupNamesByMember={groupNamesByMember}
+          onEdit={onEdit}
+        />
+      </section>
+      <section>
+        <h4 className="mb-3 text-sm font-semibold text-(--sea-ink)">
+          Members
+        </h4>
+        <MemberList
+          members={otherMembers}
+          loading={loading}
+          error={error}
+          currentMemberId={currentMemberId}
+          groupNamesByMember={groupNamesByMember}
+          onEdit={onEdit}
+        />
+      </section>
+    </div>
+  )
+}
+function MemberList({
+  members,
+  loading,
+  error,
+  currentMemberId,
+  groupNamesByMember,
+  onEdit,
+}: {
+  members: Array<ManagedMember>
+  loading: boolean
+  error: unknown
+  currentMemberId?: string
+  groupNamesByMember?: Map<string, Array<string>>
+  onEdit: (member: ManagedMember) => void
+}) {
+  if (loading)
+    return <p className="text-sm text-(--sea-ink-soft)">Loading members…</p>
+  if (error) return <ErrorText error={error} />
+  return (
+    <ul className="divide-y divide-(--line) rounded-xl border border-(--line)">
+      {members.map((member) => (
+        <li
+          key={member.id}
+          className="flex items-center justify-between gap-4 p-4 sm:p-5"
+        >
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[rgba(79,184,178,0.14)] text-(--lagoon-deep)">
+              <CircleUserRound aria-hidden="true" size={20} />
+            </div>
+            <p className="truncate font-semibold text-(--sea-ink)">
+              {member.email}
+            </p>
+            {groupNamesByMember && (
+              <p className="mt-1 text-sm text-(--sea-ink-soft)">
+                {groupNamesByMember.get(member.id)?.length
+                  ? groupNamesByMember.get(member.id)!.join(', ')
+                  : 'No group memberships'}
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge className="border-sky-200 bg-sky-50 text-sky-800">
+              {label(member.role)}
+            </Badge>
+            {member.id !== currentMemberId && (
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="border-(--line)"
+                aria-label={`Edit ${member.email}`}
+                onClick={() => onEdit(member)}
+              >
+                <Pencil aria-hidden="true" size={16} />
+              </Button>
+            )}
+          </div>
+        </li>
+      ))}
+    </ul>
+  )
+}
 function SummaryCard({
   icon: Icon,
   label,
@@ -426,7 +1054,6 @@ function SummaryCard({
     </div>
   )
 }
-
 function AdminTab({
   active,
   children,
@@ -448,7 +1075,6 @@ function AdminTab({
     </button>
   )
 }
-
 function GroupDetail({
   icon: Icon,
   label,
@@ -474,7 +1100,6 @@ function GroupDetail({
     </div>
   )
 }
-
 function itemTypeStyle(type: string) {
   return {
     Take: 'border-emerald-200 bg-emerald-50 text-emerald-800',
