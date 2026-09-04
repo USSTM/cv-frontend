@@ -4,7 +4,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import type { UserRoleAssignment } from './generated/types.gen'
+import type { GroupUser, User, UserRoleAssignment } from './generated/types.gen'
 
 import {
   createGroup,
@@ -26,7 +26,7 @@ export function useManagedMembersQuery(
   groupId: string | undefined,
   global: boolean,
 ) {
-  return useQuery({
+  return useQuery<Array<User> | Array<GroupUser>>({
     queryKey: managedMembersQueryKey(groupId, global),
     queryFn: () => (global ? getAdminUsers() : getGroupUsers(groupId!)),
     enabled: global || Boolean(groupId),
