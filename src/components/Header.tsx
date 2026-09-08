@@ -116,7 +116,7 @@ export default function Header() {
           )}
         </div>
 
-        {currentMember ? (
+        {currentMember && (
           <div className="hidden items-center gap-4 md:flex">
             {activeGroup && (
               <label className="flex items-center gap-2 text-xs font-semibold text-white/80">
@@ -211,13 +211,6 @@ export default function Header() {
               )}
             </div>
           </div>
-        ) : (
-          <Link
-            to="/login"
-            className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-white hover:bg-white/10 md:inline-flex"
-          >
-            Log in
-          </Link>
         )}
 
         <div
