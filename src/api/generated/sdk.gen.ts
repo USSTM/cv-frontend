@@ -53,6 +53,9 @@ import type {
   DeleteItemImageErrors,
   DeleteItemImageResponses,
   DeleteItemResponses,
+  DeleteUserData,
+  DeleteUserErrors,
+  DeleteUserResponses,
   GetActiveBorrowedItemsByUserIdData,
   GetActiveBorrowedItemsByUserIdErrors,
   GetActiveBorrowedItemsByUserIdResponses,
@@ -140,6 +143,9 @@ import type {
   GetUserByIdData,
   GetUserByIdErrors,
   GetUserByIdResponses,
+  GetUserRoleAssignmentsData,
+  GetUserRoleAssignmentsErrors,
+  GetUserRoleAssignmentsResponses,
   GetUsersByGroupData,
   GetUsersByGroupErrors,
   GetUsersByGroupResponses,
@@ -223,6 +229,12 @@ import type {
   UpdateMyPreferencesData,
   UpdateMyPreferencesErrors,
   UpdateMyPreferencesResponses,
+  UpdateUserData,
+  UpdateUserErrors,
+  UpdateUserGroupMembershipData,
+  UpdateUserGroupMembershipErrors,
+  UpdateUserGroupMembershipResponses,
+  UpdateUserResponses,
   UploadBorrowingImageData,
   UploadBorrowingImageErrors,
   UploadBorrowingImageResponses,
@@ -948,6 +960,27 @@ export const getUsersByGroup = <ThrowOnError extends boolean = false>(
   })
 
 /**
+ * Get a member's full role assignments
+ *
+ * Retrieves every role assignment, including its global or group scope. Requires global-admin permissions.
+ */
+export const getUserRoleAssignments = <ThrowOnError extends boolean = false>(
+  options: Options<GetUserRoleAssignmentsData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetUserRoleAssignmentsResponses,
+    GetUserRoleAssignmentsErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/admin/users/{userId}/roles',
+    ...options,
+  })
+
+/**
  * Get current user preferences
  */
 export const getMyPreferences = <ThrowOnError extends boolean = false>(
@@ -984,6 +1017,27 @@ export const updateMyPreferences = <ThrowOnError extends boolean = false>(
   })
 
 /**
+ * Delete a member
+ *
+ * Global admins may delete any member account.
+ */
+export const deleteUser = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteUserData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    DeleteUserResponses,
+    DeleteUserErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/users/{userId}',
+    ...options,
+  })
+
+/**
  * Get user by ID
  *
  * Retrieve a specific user by their ID
@@ -1002,6 +1056,56 @@ export const getUserById = <ThrowOnError extends boolean = false>(
     ],
     url: '/users/{userId}',
     ...options,
+  })
+
+/**
+ * Update one member role assignment
+ *
+ * Global admins may update one member role assignment without changing the member's other roles or group memberships.
+ */
+export const updateUser = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateUserData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UpdateUserResponses,
+    UpdateUserErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/users/{userId}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+
+/**
+ * Update a member's group membership
+ *
+ * Global admins may update membership in any group. Group admins may only update membership in groups they administer.
+ */
+export const updateUserGroupMembership = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateUserGroupMembershipData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UpdateUserGroupMembershipResponses,
+    UpdateUserGroupMembershipErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/users/{userId}/groups/{groupId}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   })
 
 /**
