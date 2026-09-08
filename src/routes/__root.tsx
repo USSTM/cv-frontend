@@ -1,6 +1,5 @@
 import { HeadContent, Scripts, createRootRouteWithContext } from '@tanstack/react-router'
 import type { QueryClient } from '@tanstack/react-query'
-import Footer from '../components/Footer'
 import Header from '../components/Header'
 import { ActiveGroupProvider } from '../lib/active-group'
 
@@ -53,7 +52,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
           <div className="flex min-h-screen flex-col">
             <Header />
             <div className="flex-1 pb-16">{children}</div>
-            <Footer />
           </div>
         </ActiveGroupProvider>
         <Scripts />
