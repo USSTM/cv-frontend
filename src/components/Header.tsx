@@ -12,7 +12,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useActiveGroup } from '@/lib/active-group'
-import { canManageActiveGroup, navigationForMember } from '@/lib/member-access'
+import {
+  canManageActiveGroup,
+  navigationForMember,
+  roleLabelForMember,
+} from '@/lib/member-access'
 
 export default function Header() {
   const { data: currentMember } = useCurrentMemberQuery()
@@ -179,12 +183,21 @@ export default function Header() {
 
               {profileOpen && (
                 <div
-                  className="absolute right-0 top-12 w-40 rounded-lg border border-(--line) bg-(--color-background) py-2 text-(--header-bg) shadow-lg "
+                  className="absolute right-0 top-12 w-64 rounded-lg border border-(--line) bg-(--color-background) py-2 text-(--header-bg) shadow-lg "
                   role="menu"
                 >
+                  <div className="px-4 py-2">
+                    <p className="truncate text-sm font-semibold text-(--header-bg)">
+                      {currentMember.email}
+                    </p>
+                    <p className="mt-0.5 text-xs font-medium text-(--sea-ink-soft)">
+                      {roleLabelForMember(currentMember, activeGroup)}
+                    </p>
+                  </div>
+                  <div className="my-1 border-t border-(--line)" />
                   <button
                     type="button"
-                    className="flex items-center gap-2 px-4 py-2 transition-colors duration-300 hover:bg-(--highlight-blue) hover:text-(--header-bg)"
+                    className="flex w-full items-center gap-2 px-4 py-2 transition-colors duration-300 hover:bg-(--highlight-blue) hover:text-(--header-bg)"
                     role="menuitem"
                     onClick={() => {
                       handleSignOut()

@@ -25,6 +25,15 @@ export function canManageActiveGroup(
   )
 }
 
+export function roleLabelForMember(
+  member: CurrentMember,
+  activeGroup: MemberGroup | null,
+): string {
+  if (hasRole(member, 'global_admin')) return 'Global Admin'
+  if (activeGroup?.roles.includes('group_admin')) return 'Group Admin'
+  return 'Member'
+}
+
 export function navigationForMember(
   member: CurrentMember,
   activeGroup: MemberGroup | null,
