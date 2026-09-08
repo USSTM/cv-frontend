@@ -4,6 +4,7 @@ import {
   activeGroupFor,
   canManageActiveGroup,
   navigationForMember,
+  roleLabelForMember,
 } from './member-access'
 
 const groups: Array<MemberGroup> = [
@@ -26,7 +27,7 @@ describe('member access', () => {
       navigationForMember(memberWithRoles('member'), groups[0]).map(
         (item) => item.label,
       ),
-    ).toEqual(['Home', 'Activity', 'Catalog', 'Cart'])
+    ).toEqual(['Activity', 'Catalog', 'Cart'])
     expect(
       navigationForMember(memberWithRoles('group_admin'), groups[1]).map(
         (item) => item.label,
@@ -47,6 +48,22 @@ describe('member access', () => {
         (item) => item.label,
       ),
     ).toContain('Admin')
+  })
+
+  it('labels the member role from their standing in the active group', () => {
+    expect(roleLabelForMember(memberWithRoles('member'), groups[0])).toBe(
+      'Member',
+    )
+    expect(roleLabelForMember(memberWithRoles('member'), groups[1])).toBe(
+      'Group Admin',
+    )
+    expect(roleLabelForMember(memberWithRoles('global_admin'), groups[0])).toBe(
+      'Global Admin',
+    )
+    expect(roleLabelForMember(memberWithRoles('global_admin'), groups[1])).toBe(
+      'Global Admin',
+    )
+    expect(roleLabelForMember(memberWithRoles('member'), null)).toBe('Member')
   })
 
   it('selects the only group by default and honours a valid selected group', () => {

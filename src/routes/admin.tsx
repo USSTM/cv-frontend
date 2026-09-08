@@ -4,7 +4,6 @@ import {
   Building2,
   CircleUserRound,
   Globe2,
-  LockKeyhole,
   PackageCheck,
   Pencil,
   Settings2,
@@ -45,8 +44,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { useDemo } from '@/demo/DemoContext'
+import { useCatalogItemsQuery } from '@/api/catalog-queries'
 import { useActiveGroup } from '@/lib/active-group'
+import { itemTypeClass, itemTypeLabels } from '@/lib/item-type'
 import { hasRole } from '@/lib/member-access'
 import { requireAuth } from '@/lib/route-guards'
 
@@ -54,11 +54,12 @@ export const Route = createFileRoute('/admin')({
   beforeLoad: requireAuth,
   component: AdminPage,
 })
-type AdminView = 'members' | 'groups' | 'catalog' | 'group' | 'system'
+type AdminView = 'members' | 'groups' | 'catalog' | 'group'
 type ManagedMember = { id: string; email: string; role: string }
 
 function AdminPage() {
-  const { items, borrowings } = useDemo()
+  const catalogItemsQuery = useCatalogItemsQuery({})
+  const catalogItems = catalogItemsQuery.data?.data ?? []
   const { activeGroup } = useActiveGroup()
   const { data: currentMember } = useCurrentMemberQuery()
   const isGlobalAdmin = currentMember
@@ -168,7 +169,7 @@ function AdminPage() {
             </Badge>
           </div>
         </div>
-        <section className="grid gap-4 sm:grid-cols-3">
+        <section className="grid gap-4 sm:grid-cols-2">
           <SummaryCard
             icon={UsersRound}
             label={isGlobalAdmin ? 'Managed members' : 'Active members'}
@@ -177,14 +178,7 @@ function AdminPage() {
           <SummaryCard
             icon={Boxes}
             label="Catalog items"
-            value={String(items.length)}
-          />
-          <SummaryCard
-            icon={PackageCheck}
-            label="Items currently out"
-            value={String(
-              borrowings.filter((b) => b.status === 'Active').length,
-            )}
+            value={String(catalogItems.length)}
           />
         </section>
         <section className="island-shell overflow-hidden rounded-2xl">
@@ -234,12 +228,6 @@ function AdminPage() {
                 onClick={() => setView('group')}
               >
                 Group details
-              </AdminTab>
-              <AdminTab
-                active={view === 'system'}
-                onClick={() => setView('system')}
-              >
-                System settings
               </AdminTab>
             </div>
           </div>
@@ -366,26 +354,38 @@ function AdminPage() {
           {view === 'catalog' && (
             <div className="px-5 py-5 sm:px-6">
               <h3 className="mb-5 font-semibold">Catalog overview</h3>
-              <ul className="divide-y divide-(--line) rounded-xl border border-(--line)">
-                {items.map((item) => (
-                  <li
-                    key={item.id}
-                    className="flex items-center justify-between gap-4 p-4 sm:p-5"
-                  >
-                    <div>
-                      <p className="font-semibold text-(--sea-ink)">
-                        {item.title}
-                      </p>
-                      <p className="mt-1 text-sm text-(--sea-ink-soft)">
-                        {item.stock} available
-                      </p>
-                    </div>
-                    <Badge className={itemTypeStyle(item.type)}>
-                      {item.type}
-                    </Badge>
-                  </li>
-                ))}
-              </ul>
+              {catalogItemsQuery.isLoading ? (
+                <p className="text-sm text-(--sea-ink-soft)">Loading catalog…</p>
+              ) : catalogItemsQuery.isError ? (
+                <p className="text-sm text-red-700">
+                  Could not load the catalog. Try again.
+                </p>
+              ) : catalogItems.length === 0 ? (
+                <p className="text-sm text-(--sea-ink-soft)">
+                  No catalog items yet.
+                </p>
+              ) : (
+                <ul className="divide-y divide-(--line) rounded-xl border border-(--line)">
+                  {catalogItems.map((item) => (
+                    <li
+                      key={item.id}
+                      className="flex items-center justify-between gap-4 p-4 sm:p-5"
+                    >
+                      <div>
+                        <p className="font-semibold text-(--sea-ink)">
+                          {item.name}
+                        </p>
+                        <p className="mt-1 text-sm text-(--sea-ink-soft)">
+                          {item.stock} available
+                        </p>
+                      </div>
+                      <Badge className={itemTypeClass(item.type)}>
+                        {itemTypeLabels[item.type]}
+                      </Badge>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           )}
           {view === 'group' && (
@@ -415,26 +415,6 @@ function AdminPage() {
                 label="System administration"
                 value="Available to Global Admins"
               />
-            </div>
-          )}
-          {view === 'system' && (
-            <div className="px-5 py-5 sm:px-6">
-              <div className="rounded-xl border border-(--line) bg-(--foam) p-5">
-                <div className="flex gap-3">
-                  <LockKeyhole
-                    aria-hidden="true"
-                    className="text-(--lagoon-deep)"
-                    size={20}
-                  />
-                  <div>
-                    <h3 className="font-semibold">Global Admin settings</h3>
-                    <p className="mt-1 text-sm text-(--sea-ink-soft)">
-                      System-wide configuration and permission management are
-                      reserved for Global Admins.
-                    </p>
-                  </div>
-                </div>
-              </div>
             </div>
           )}
         </section>
@@ -1149,11 +1129,4 @@ function GroupDetail({
       </div>
     </div>
   )
-}
-function itemTypeStyle(type: string) {
-  return {
-    Take: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-    Borrow: 'border-sky-200 bg-sky-50 text-sky-800',
-    Request: 'border-violet-200 bg-violet-50 text-violet-800',
-  }[type]
 }

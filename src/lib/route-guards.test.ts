@@ -27,7 +27,8 @@ describe('route guards', () => {
     await expect(
       redirectIfAuthenticated({ context: { queryClient } }),
     ).rejects.toSatisfy(
-      (error: unknown) => isRedirect(error) && error.options.to === '/',
+      (error: unknown) =>
+        isRedirect(error) && error.options.to === '/activity',
     )
   })
 })

@@ -33,7 +33,8 @@ export async function requireApprover({
   const member = context.queryClient.getQueryData<CurrentMember>(
     currentMemberQueryKey,
   )
-  if (!member || !hasRole(member, 'approver')) throw redirect({ to: '/' })
+  if (!member || !hasRole(member, 'approver'))
+    throw redirect({ to: '/activity' })
 }
 
 export async function redirectIfAuthenticated({
@@ -53,5 +54,5 @@ export async function redirectIfAuthenticated({
     throw error
   }
 
-  throw redirect({ to: '/' })
+  throw redirect({ to: '/activity' })
 }

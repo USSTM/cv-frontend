@@ -12,7 +12,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useActiveGroup } from '@/lib/active-group'
-import { canManageActiveGroup, navigationForMember } from '@/lib/member-access'
+import {
+  canManageActiveGroup,
+  navigationForMember,
+  roleLabelForMember,
+} from '@/lib/member-access'
 
 export default function Header() {
   const { data: currentMember } = useCurrentMemberQuery()
@@ -49,7 +53,7 @@ export default function Header() {
       location.pathname === '/admin' &&
       !canManageActiveGroup(currentMember, nextGroup)
     ) {
-      navigate({ to: '/' })
+      navigate({ to: '/activity' })
     }
   }
 
@@ -112,7 +116,7 @@ export default function Header() {
           )}
         </div>
 
-        {currentMember ? (
+        {currentMember && (
           <div className="hidden items-center gap-4 md:flex">
             {activeGroup && (
               <label className="flex items-center gap-2 text-xs font-semibold text-white/80">
@@ -152,7 +156,7 @@ export default function Header() {
                 )}
               </label>
             )}
-            <Link
+            {/* <Link
               to="/settings"
               className="nav-link"
               activeProps={{
@@ -160,7 +164,7 @@ export default function Header() {
               }}
             >
               Settings
-            </Link>
+            </Link> */}
             <NotificationLink unreadCount={unreadCount} />
             {/* <button type="button" onClick={resetDemo} className="inline-flex items-center gap-1 rounded-lg px-2 py-2 text-xs font-semibold text-white hover:bg-white/10" title="Reset all in-memory demo data">
             <RotateCcw aria-hidden="true" size={15} /> Reset demo
@@ -179,12 +183,21 @@ export default function Header() {
 
               {profileOpen && (
                 <div
-                  className="absolute right-0 top-12 w-40 rounded-lg border border-(--line) bg-(--color-background) py-2 text-(--header-bg) shadow-lg "
+                  className="absolute right-0 top-12 w-64 rounded-lg border border-(--line) bg-(--color-background) py-2 text-(--header-bg) shadow-lg "
                   role="menu"
                 >
+                  <div className="px-4 py-2">
+                    <p className="truncate text-sm font-semibold text-(--header-bg)">
+                      {currentMember.email}
+                    </p>
+                    <p className="mt-0.5 text-xs font-medium text-(--sea-ink-soft)">
+                      {roleLabelForMember(currentMember, activeGroup)}
+                    </p>
+                  </div>
+                  <div className="my-1 border-t border-(--line)" />
                   <button
                     type="button"
-                    className="flex items-center gap-2 px-4 py-2 transition-colors duration-300 hover:bg-(--highlight-blue) hover:text-(--header-bg)"
+                    className="flex w-full items-center gap-2 px-4 py-2 transition-colors duration-300 hover:bg-(--highlight-blue) hover:text-(--header-bg)"
                     role="menuitem"
                     onClick={() => {
                       handleSignOut()
@@ -198,13 +211,6 @@ export default function Header() {
               )}
             </div>
           </div>
-        ) : (
-          <Link
-            to="/login"
-            className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-white hover:bg-white/10 md:inline-flex"
-          >
-            Log in
-          </Link>
         )}
 
         <div
