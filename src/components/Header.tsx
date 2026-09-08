@@ -86,8 +86,13 @@ export default function Header() {
         <div className="flex items-center gap-4">
           <Link
             to="/"
-            className="text-2xl font-bold text-white no-underline transition-colors duration-300 hover:text-white"
+            className="flex items-center gap-3 text-2xl font-bold text-white no-underline transition-colors duration-300 hover:text-white"
           >
+            <img
+              src="/usstm-white.png"
+              alt="USSTM"
+              className="h-10 w-auto shrink-0"
+            />
             USSTM Campus Vault
           </Link>
           {currentMember && (
