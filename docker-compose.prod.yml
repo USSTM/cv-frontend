@@ -1,0 +1,24 @@
+name: cv-frontend-prod
+
+services:
+    frontend:
+        build:
+            context: .
+            dockerfile: Dockerfile
+            args:
+                VITE_API_URL: https://api.inventory.usstm.ca
+        restart: unless-stopped
+        mem_limit: 512m
+        expose:
+            - "3000"
+        environment:
+            PORT: 3000
+        networks:
+            portal_shared:
+                aliases:
+                    - cv-frontend-app
+
+networks:
+    portal_shared:
+        name: usstm-portal-production_application
+        external: true
