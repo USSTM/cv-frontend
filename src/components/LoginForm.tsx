@@ -48,7 +48,7 @@ export default function LoginForm() {
   }
 
   return (
-    <main className="page-wrap px-4 py-12 sm:px-6 lg:px-8">
+    <main className="page-wrap px-4 py-12 sm:px-6 lg:flex lg:min-h-[calc(100vh-4rem)] lg:flex-col lg:justify-center lg:px-8">
       <section className="island-shell rise-in mx-auto max-w-lg rounded-2xl p-6 sm:p-8">
         {step === 'email' ? (
           <>
@@ -135,6 +135,11 @@ export default function LoginForm() {
                   onChange={(event) => setPasscode(event.target.value)}
                   className="w-full rounded-lg border border-(--line) bg-white px-4 py-3 text-(--sea-ink) outline-none transition placeholder:text-(--sea-ink-soft) focus:border-(--lagoon-deep) focus:ring-2 focus:ring-[rgba(62,137,137,0.2)]"
                 />
+                <p className="text-xs text-(--sea-ink-soft)">
+                  No passcode? Check your spam folder. If it still hasn&apos;t
+                  arrived, your email may not be registered. Contact USSTM for
+                  access.
+                </p>
               </div>
 
               {error && (
