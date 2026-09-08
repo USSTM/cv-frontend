@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { logout, verifyOtp } from './auth'
+import { acceptInvitation, logout, verifyOtp } from './auth'
 import { getCurrentMember } from './member'
 
 const fetchMock = vi.fn<typeof fetch>()
@@ -59,5 +59,19 @@ describe('cookie-session endpoints', () => {
       method: 'POST',
     })
     expect(options?.body).toBeUndefined()
+  })
+
+  it('accepts an invitation before the member signs in', async () => {
+    mockJsonResponse({ message: 'Invitation accepted.' })
+
+    await acceptInvitation({ code: 'a'.repeat(32) })
+
+    expect(fetchMock.mock.calls[0]).toEqual([
+      new URL('/auth/invitations/accept', 'http://localhost:8080'),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ code: 'a'.repeat(32) }),
+      }),
+    ])
   })
 })

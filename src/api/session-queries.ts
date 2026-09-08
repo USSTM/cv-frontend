@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { logout, requestOtp, verifyOtp } from './auth'
+import { acceptInvitation, logout, requestOtp, verifyOtp } from './auth'
 import { ApiError } from './client'
 import { getCurrentMember } from './member'
 
@@ -23,6 +23,16 @@ export function useVerifyOtpMutation() {
 
   return useMutation({
     mutationFn: verifyOtp,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: currentMemberQueryKey })
+    },
+  })
+}
+
+export function useAcceptInvitationMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: acceptInvitation,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: currentMemberQueryKey })
     },
