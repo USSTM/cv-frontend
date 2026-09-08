@@ -10,7 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as InviteRouteImport } from './routes/invite'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CatalogRouteImport } from './routes/catalog'
 import { Route as CartRouteImport } from './routes/cart'
@@ -18,15 +20,28 @@ import { Route as ApprovalsRouteImport } from './routes/approvals'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as ActivityRouteImport } from './routes/activity'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as InviteIndexRouteImport } from './routes/invite.index'
+import { Route as InviteCodeRouteImport } from './routes/invite.$code'
+import { Route as CatalogItemIdRouteImport } from './routes/catalog.$itemId'
 
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InviteRoute = InviteRouteImport.update({
+  id: '/invite',
+  path: '/invite',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CheckoutRoute = CheckoutRouteImport.update({
@@ -64,6 +79,21 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InviteIndexRoute = InviteIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => InviteRoute,
+} as any)
+const InviteCodeRoute = InviteCodeRouteImport.update({
+  id: '/$code',
+  path: '/$code',
+  getParentRoute: () => InviteRoute,
+} as any)
+const CatalogItemIdRoute = CatalogItemIdRouteImport.update({
+  id: '/$itemId',
+  path: '/$itemId',
+  getParentRoute: () => CatalogRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -71,10 +101,15 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/approvals': typeof ApprovalsRoute
   '/cart': typeof CartRoute
-  '/catalog': typeof CatalogRoute
+  '/catalog': typeof CatalogRouteWithChildren
   '/checkout': typeof CheckoutRoute
+  '/invite': typeof InviteRouteWithChildren
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRoute
+  '/catalog/$itemId': typeof CatalogItemIdRoute
+  '/invite/$code': typeof InviteCodeRoute
+  '/invite/': typeof InviteIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -82,10 +117,14 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/approvals': typeof ApprovalsRoute
   '/cart': typeof CartRoute
-  '/catalog': typeof CatalogRoute
+  '/catalog': typeof CatalogRouteWithChildren
   '/checkout': typeof CheckoutRoute
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRoute
+  '/catalog/$itemId': typeof CatalogItemIdRoute
+  '/invite/$code': typeof InviteCodeRoute
+  '/invite': typeof InviteIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -94,10 +133,15 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/approvals': typeof ApprovalsRoute
   '/cart': typeof CartRoute
-  '/catalog': typeof CatalogRoute
+  '/catalog': typeof CatalogRouteWithChildren
   '/checkout': typeof CheckoutRoute
+  '/invite': typeof InviteRouteWithChildren
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRoute
+  '/catalog/$itemId': typeof CatalogItemIdRoute
+  '/invite/$code': typeof InviteCodeRoute
+  '/invite/': typeof InviteIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -109,8 +153,13 @@ export interface FileRouteTypes {
     | '/cart'
     | '/catalog'
     | '/checkout'
+    | '/invite'
     | '/login'
+    | '/notifications'
     | '/settings'
+    | '/catalog/$itemId'
+    | '/invite/$code'
+    | '/invite/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -121,7 +170,11 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/checkout'
     | '/login'
+    | '/notifications'
     | '/settings'
+    | '/catalog/$itemId'
+    | '/invite/$code'
+    | '/invite'
   id:
     | '__root__'
     | '/'
@@ -131,8 +184,13 @@ export interface FileRouteTypes {
     | '/cart'
     | '/catalog'
     | '/checkout'
+    | '/invite'
     | '/login'
+    | '/notifications'
     | '/settings'
+    | '/catalog/$itemId'
+    | '/invite/$code'
+    | '/invite/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -141,9 +199,11 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   ApprovalsRoute: typeof ApprovalsRoute
   CartRoute: typeof CartRoute
-  CatalogRoute: typeof CatalogRoute
+  CatalogRoute: typeof CatalogRouteWithChildren
   CheckoutRoute: typeof CheckoutRoute
+  InviteRoute: typeof InviteRouteWithChildren
   LoginRoute: typeof LoginRoute
+  NotificationsRoute: typeof NotificationsRoute
   SettingsRoute: typeof SettingsRoute
 }
 
@@ -156,11 +216,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invite': {
+      id: '/invite'
+      path: '/invite'
+      fullPath: '/invite'
+      preLoaderRoute: typeof InviteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/checkout': {
@@ -212,8 +286,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/invite/': {
+      id: '/invite/'
+      path: '/'
+      fullPath: '/invite/'
+      preLoaderRoute: typeof InviteIndexRouteImport
+      parentRoute: typeof InviteRoute
+    }
+    '/invite/$code': {
+      id: '/invite/$code'
+      path: '/$code'
+      fullPath: '/invite/$code'
+      preLoaderRoute: typeof InviteCodeRouteImport
+      parentRoute: typeof InviteRoute
+    }
+    '/catalog/$itemId': {
+      id: '/catalog/$itemId'
+      path: '/$itemId'
+      fullPath: '/catalog/$itemId'
+      preLoaderRoute: typeof CatalogItemIdRouteImport
+      parentRoute: typeof CatalogRoute
+    }
   }
 }
+
+interface CatalogRouteChildren {
+  CatalogItemIdRoute: typeof CatalogItemIdRoute
+}
+
+const CatalogRouteChildren: CatalogRouteChildren = {
+  CatalogItemIdRoute: CatalogItemIdRoute,
+}
+
+const CatalogRouteWithChildren =
+  CatalogRoute._addFileChildren(CatalogRouteChildren)
+
+interface InviteRouteChildren {
+  InviteCodeRoute: typeof InviteCodeRoute
+  InviteIndexRoute: typeof InviteIndexRoute
+}
+
+const InviteRouteChildren: InviteRouteChildren = {
+  InviteCodeRoute: InviteCodeRoute,
+  InviteIndexRoute: InviteIndexRoute,
+}
+
+const InviteRouteWithChildren =
+  InviteRoute._addFileChildren(InviteRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -221,9 +340,11 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   ApprovalsRoute: ApprovalsRoute,
   CartRoute: CartRoute,
-  CatalogRoute: CatalogRoute,
+  CatalogRoute: CatalogRouteWithChildren,
   CheckoutRoute: CheckoutRoute,
+  InviteRoute: InviteRouteWithChildren,
   LoginRoute: LoginRoute,
+  NotificationsRoute: NotificationsRoute,
   SettingsRoute: SettingsRoute,
 }
 export const routeTree = rootRouteImport

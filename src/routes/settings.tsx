@@ -10,8 +10,10 @@ import {
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
+import { requireAuth } from '@/lib/route-guards'
 
 export const Route = createFileRoute('/settings')({
+  beforeLoad: requireAuth,
   component: SettingsPage,
 })
 
