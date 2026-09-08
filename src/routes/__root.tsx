@@ -2,7 +2,6 @@ import { HeadContent, Scripts, createRootRouteWithContext } from '@tanstack/reac
 import type { QueryClient } from '@tanstack/react-query'
 import Footer from '../components/Footer'
 import Header from '../components/Header'
-import { DemoProvider } from '../demo/DemoContext'
 import { ActiveGroupProvider } from '../lib/active-group'
 
 import appCss from '../styles.css?url'
@@ -51,13 +50,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body className="min-h-screen bg-[var(--bg-base)] font-sans antialiased text-[var(--sea-ink)] wrap-anywhere selection:bg-[rgba(79,184,178,0.24)]">
         <ActiveGroupProvider>
-          <DemoProvider>
-            <div className="flex min-h-screen flex-col">
-              <Header />
-              <div className="flex-1 pb-16">{children}</div>
-              <Footer />
-            </div>
-          </DemoProvider>
+          <div className="flex min-h-screen flex-col">
+            <Header />
+            <div className="flex-1 pb-16">{children}</div>
+            <Footer />
+          </div>
         </ActiveGroupProvider>
         <Scripts />
       </body>
