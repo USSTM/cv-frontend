@@ -8,6 +8,7 @@ import type { GroupUser, User, UserRoleAssignment } from './generated/types.gen'
 
 import {
   createGroup,
+  deleteMember,
   deleteGroup,
   getAdminUsers,
   getGroups,
@@ -111,6 +112,18 @@ export function useUpdateMemberRolesMutation() {
       await queryClient.invalidateQueries({
         queryKey: ['admin', 'member-roles', input.userId],
       })
+    },
+  })
+}
+
+export function useDeleteMemberMutation() {
+  const invalidate = useInvalidateMembers()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: deleteMember,
+    onSuccess: async (_, userId) => {
+      await invalidate()
+      queryClient.removeQueries({ queryKey: ['admin', 'member-roles', userId] })
     },
   })
 }

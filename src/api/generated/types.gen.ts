@@ -13,10 +13,8 @@ export type User = {
 }
 
 export type UserUpdate = {
-  /**
-   * Complete replacement of the member's role assignments.
-   */
-  roles: Array<UserRoleAssignment>
+  current: UserRoleAssignment
+  replacement: UserRoleAssignment
 }
 
 export type UserRoleAssignment = {

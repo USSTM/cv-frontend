@@ -53,11 +53,24 @@ export function inviteMember(input: InviteUserRequest) {
 
 export function updateMemberRoles(input: {
   userId: string
-  roles: Array<UserRoleAssignment>
+  changes: Array<{
+    current: UserRoleAssignment
+    replacement: UserRoleAssignment
+  }>
 }) {
-  return apiRequest(`/users/${encodeURIComponent(input.userId)}`, {
-    method: 'PATCH',
-    body: { roles: input.roles },
+  return Promise.all(
+    input.changes.map(({ current, replacement }) =>
+      apiRequest(`/users/${encodeURIComponent(input.userId)}`, {
+        method: 'PATCH',
+        body: { current, replacement },
+      }),
+    ),
+  )
+}
+
+export function deleteMember(userId: string) {
+  return apiRequest<void>(`/users/${encodeURIComponent(userId)}`, {
+    method: 'DELETE',
   })
 }
 

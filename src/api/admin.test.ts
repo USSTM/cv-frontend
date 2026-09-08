@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   createGroup,
+  deleteMember,
   deleteGroup,
   getAdminUsers,
   getGroupUsers,
@@ -50,19 +51,29 @@ describe('admin API', () => {
     )
   })
 
-  it('replaces global member role assignments', async () => {
+  it('patches each changed member role assignment', async () => {
     mockResponse({ id: 'member-1' })
-    const roles = [
-      { role_name: 'group_admin', scope: 'group', scope_id: 'group-1' },
-    ]
+    const current = {
+      role_name: 'member',
+      scope: 'group',
+      scope_id: 'group-1',
+    }
+    const replacement = {
+      role_name: 'group_admin',
+      scope: 'group',
+      scope_id: 'group-1',
+    }
 
-    await updateMemberRoles({ userId: 'member-1', roles })
+    await updateMemberRoles({
+      userId: 'member-1',
+      changes: [{ current, replacement }],
+    })
 
     expect(fetchMock.mock.calls[0]).toEqual([
       new URL('/users/member-1', 'http://localhost:8080'),
       expect.objectContaining({
         method: 'PATCH',
-        body: JSON.stringify({ roles }),
+        body: JSON.stringify({ current, replacement }),
       }),
     ])
   })
@@ -82,6 +93,17 @@ describe('admin API', () => {
         method: 'PATCH',
         body: JSON.stringify({ is_member: false }),
       }),
+    ])
+  })
+
+  it('deletes a member account as a separate destructive action', async () => {
+    mockResponse()
+
+    await deleteMember('member-1')
+
+    expect(fetchMock.mock.calls[0]).toEqual([
+      new URL('/users/member-1', 'http://localhost:8080'),
+      expect.objectContaining({ method: 'DELETE' }),
     ])
   })
 

@@ -1059,9 +1059,9 @@ export const getUserById = <ThrowOnError extends boolean = false>(
   })
 
 /**
- * Replace a member's roles
+ * Update one member role assignment
  *
- * Global admins may replace any member's role assignments, including their scope and group membership.
+ * Global admins may update one member role assignment without changing the member's other roles or group memberships.
  */
 export const updateUser = <ThrowOnError extends boolean = false>(
   options: Options<UpdateUserData, ThrowOnError>,

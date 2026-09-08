@@ -15,6 +15,7 @@ import { useEffect, useState } from 'react'
 
 import {
   useCreateGroupMutation,
+  useDeleteMemberMutation,
   useDeleteGroupMutation,
   useGroupsQuery,
   useInviteMemberMutation,
@@ -574,7 +575,8 @@ function AdminPage() {
               </Button>
             </DialogClose>
             <Button
-              variant="destructive"
+              variant="outline"
+              className="border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
               onClick={() =>
                 groupToDelete &&
                 deleteGroup.mutate(groupToDelete.id, {
@@ -713,6 +715,23 @@ function AdminPage() {
   )
 }
 
+function scopeForRole(roleName: string) {
+  return roleName === 'member' || roleName === 'group_admin'
+    ? 'group'
+    : 'global'
+}
+
+function sameRoleAssignment(
+  left: UserRoleAssignment,
+  right: UserRoleAssignment,
+) {
+  return (
+    left.role_name === right.role_name &&
+    left.scope === right.scope &&
+    left.scope_id === right.scope_id
+  )
+}
+
 function GlobalEditor({
   member,
   onClose,
@@ -723,23 +742,51 @@ function GlobalEditor({
   const { data: groups = [] } = useGroupsQuery(Boolean(member))
   const rolesQuery = useMemberRolesQuery(member?.id, Boolean(member))
   const updateRoles = useUpdateMemberRolesMutation()
+  const deleteMember = useDeleteMemberMutation()
   const [roles, setRoles] = useState<Array<UserRoleAssignment>>([])
-  useEffect(
-    () => setRoles(rolesQuery.data ?? []),
-    [rolesQuery.data, member?.id],
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [initialRoles, setInitialRoles] = useState<Array<UserRoleAssignment>>(
+    [],
   )
+  useEffect(() => {
+    const normalizedRoles = (rolesQuery.data ?? []).map((role) => ({
+      ...role,
+      scope: scopeForRole(role.role_name),
+      scope_id:
+        scopeForRole(role.role_name) === 'group' ? role.scope_id : undefined,
+    }))
+    setInitialRoles(normalizedRoles)
+    setRoles(normalizedRoles)
+  }, [rolesQuery.data, member?.id])
   const update = (index: number, patch: Partial<UserRoleAssignment>) =>
     setRoles((current) =>
       current.map((role, i) => (i === index ? { ...role, ...patch } : role)),
     )
+  const updateRoleName = (index: number, roleName: string) => {
+    const scope = scopeForRole(roleName)
+    const currentRole = roles[index]
+    update(index, {
+      role_name: roleName,
+      scope,
+      scope_id:
+        scope === 'group'
+          ? (currentRole?.scope_id ?? groups[0]?.id)
+          : undefined,
+    })
+  }
+  const changes = roles.flatMap((replacement, index) => {
+    const current = initialRoles[index]
+    return current && !sameRoleAssignment(current, replacement)
+      ? [{ current, replacement }]
+      : []
+  })
   return (
     <Dialog open={Boolean(member)} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>Edit member roles</DialogTitle>
           <DialogDescription>
-            These assignments replace the member’s current roles. Group roles
-            require a group.
+            Update existing role assignments. Group roles require a group.
           </DialogDescription>
         </DialogHeader>
         {rolesQuery.isLoading ? (
@@ -751,35 +798,18 @@ function GlobalEditor({
             {roles.map((role, index) => (
               <div
                 key={`${index}-${role.role_name}`}
-                className="grid gap-2 rounded-lg border border-(--line) p-3 sm:grid-cols-[1fr_1fr_1fr_auto]"
+                className="grid gap-2 rounded-lg border border-(--line) p-3 sm:grid-cols-2"
               >
                 <select
                   aria-label="Role"
                   className="h-9 rounded-md border border-(--line) bg-white px-2 text-sm"
                   value={role.role_name}
-                  onChange={(e) => update(index, { role_name: e.target.value })}
+                  onChange={(e) => updateRoleName(index, e.target.value)}
                 >
                   <option value="member">Member</option>
                   <option value="group_admin">Group Admin</option>
                   <option value="approver">Approver</option>
                   <option value="global_admin">Global Admin</option>
-                </select>
-                <select
-                  aria-label="Scope"
-                  className="h-9 rounded-md border border-(--line) bg-white px-2 text-sm"
-                  value={role.scope}
-                  onChange={(e) =>
-                    update(index, {
-                      scope: e.target.value,
-                      scope_id:
-                        e.target.value === 'global'
-                          ? undefined
-                          : (role.scope_id ?? groups[0]?.id),
-                    })
-                  }
-                >
-                  <option value="global">Global</option>
-                  <option value="group">Group</option>
                 </select>
                 {role.scope === 'group' ? (
                   <select
@@ -802,39 +832,20 @@ function GlobalEditor({
                 ) : (
                   <span />
                 )}
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="border-(--line)"
-                  onClick={() =>
-                    setRoles((current) => current.filter((_, i) => i !== index))
-                  }
-                >
-                  Remove
-                </Button>
               </div>
             ))}
-            <Button
-              type="button"
-              variant="outline"
-              className="border-(--line)"
-              onClick={() =>
-                setRoles((current) => [
-                  ...current,
-                  {
-                    role_name: 'member',
-                    scope: 'group',
-                    scope_id: groups[0]?.id,
-                  },
-                ])
-              }
-            >
-              Add role
-            </Button>
           </div>
         )}
         {updateRoles.error && <ErrorText error={updateRoles.error} />}
-        <DialogFooter>
+        <DialogFooter className="sm:justify-between">
+          <Button
+            type="button"
+            variant="outline"
+            className="border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 sm:mr-auto"
+            onClick={() => setConfirmDelete(true)}
+          >
+            Delete member
+          </Button>
           <Button
             variant="outline"
             className="border-(--line)"
@@ -844,16 +855,20 @@ function GlobalEditor({
           </Button>
           <Button
             className="btn-inv"
-            onClick={() =>
-              member &&
+            onClick={() => {
+              if (!member || changes.length === 0) {
+                onClose()
+                return
+              }
               updateRoles.mutate(
-                { userId: member.id, roles },
+                { userId: member.id, changes },
                 { onSuccess: onClose },
               )
-            }
+            }}
             disabled={
               rolesQuery.isLoading ||
               updateRoles.isPending ||
+              changes.length === 0 ||
               roles.some((role) => role.scope === 'group' && !role.scope_id)
             }
           >
@@ -861,6 +876,43 @@ function GlobalEditor({
           </Button>
         </DialogFooter>
       </DialogContent>
+      <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete member</DialogTitle>
+            <DialogDescription>
+              Delete {member?.email}? This permanently removes their Campus
+              Vault account and cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteMember.error && <ErrorText error={deleteMember.error} />}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              className="border-(--line)"
+              onClick={() => setConfirmDelete(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-red-600 text-white hover:bg-red-700"
+              onClick={() =>
+                member &&
+                deleteMember.mutate(member.id, {
+                  onSuccess: () => {
+                    setConfirmDelete(false)
+                    onClose()
+                  },
+                })
+              }
+              disabled={deleteMember.isPending}
+            >
+              {deleteMember.isPending ? 'Deleting…' : 'Delete member'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   )
 }
@@ -960,9 +1012,7 @@ function GlobalMemberLists({
         />
       </section>
       <section>
-        <h4 className="mb-3 text-sm font-semibold text-(--sea-ink)">
-          Members
-        </h4>
+        <h4 className="mb-3 text-sm font-semibold text-(--sea-ink)">Members</h4>
         <MemberList
           members={otherMembers}
           loading={loading}
