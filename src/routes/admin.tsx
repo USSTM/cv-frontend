@@ -4,7 +4,6 @@ import {
   Building2,
   CircleUserRound,
   Globe2,
-  LockKeyhole,
   PackageCheck,
   Pencil,
   Settings2,
@@ -55,7 +54,7 @@ export const Route = createFileRoute('/admin')({
   beforeLoad: requireAuth,
   component: AdminPage,
 })
-type AdminView = 'members' | 'groups' | 'catalog' | 'group' | 'system'
+type AdminView = 'members' | 'groups' | 'catalog' | 'group'
 type ManagedMember = { id: string; email: string; role: string }
 
 function AdminPage() {
@@ -229,12 +228,6 @@ function AdminPage() {
                 onClick={() => setView('group')}
               >
                 Group details
-              </AdminTab>
-              <AdminTab
-                active={view === 'system'}
-                onClick={() => setView('system')}
-              >
-                System settings
               </AdminTab>
             </div>
           </div>
@@ -422,26 +415,6 @@ function AdminPage() {
                 label="System administration"
                 value="Available to Global Admins"
               />
-            </div>
-          )}
-          {view === 'system' && (
-            <div className="px-5 py-5 sm:px-6">
-              <div className="rounded-xl border border-(--line) bg-(--foam) p-5">
-                <div className="flex gap-3">
-                  <LockKeyhole
-                    aria-hidden="true"
-                    className="text-(--lagoon-deep)"
-                    size={20}
-                  />
-                  <div>
-                    <h3 className="font-semibold">Global Admin settings</h3>
-                    <p className="mt-1 text-sm text-(--sea-ink-soft)">
-                      System-wide configuration and permission management are
-                      reserved for Global Admins.
-                    </p>
-                  </div>
-                </div>
-              </div>
             </div>
           )}
         </section>
