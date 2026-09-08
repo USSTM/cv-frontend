@@ -156,7 +156,7 @@ export default function Header() {
                 )}
               </label>
             )}
-            <Link
+            {/* <Link
               to="/settings"
               className="nav-link"
               activeProps={{
@@ -164,7 +164,7 @@ export default function Header() {
               }}
             >
               Settings
-            </Link>
+            </Link> */}
             <NotificationLink unreadCount={unreadCount} />
             {/* <button type="button" onClick={resetDemo} className="inline-flex items-center gap-1 rounded-lg px-2 py-2 text-xs font-semibold text-white hover:bg-white/10" title="Reset all in-memory demo data">
             <RotateCcw aria-hidden="true" size={15} /> Reset demo
