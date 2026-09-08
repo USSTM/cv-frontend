@@ -41,7 +41,7 @@ export default function LoginForm() {
     setError(null)
     try {
       await verifyOtp.mutateAsync({ email, code: passcode })
-      navigate({ to: '/' })
+      navigate({ to: '/activity' })
     } catch (err) {
       setError(errorMessage(err, 'That passcode is invalid or expired.'))
     }

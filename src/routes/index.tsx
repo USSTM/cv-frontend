@@ -1,3 +1,19 @@
+import { createFileRoute, redirect } from '@tanstack/react-router'
+import { requireAuth } from '@/lib/route-guards'
+
+export const Route = createFileRoute('/')({
+  beforeLoad: async (ctx) => {
+    await requireAuth(ctx)
+    throw redirect({ to: '/activity' })
+  },
+})
+
+/*
+ * Home page removed: authenticated users land on Activity instead.
+ * Keeping the original implementation here (commented out) in case we
+ * want to bring the landing page back. Note: the old DemoContext this
+ * once imported has since been deleted.
+ *
 import { Link, createFileRoute } from '@tanstack/react-router'
 import {
   ArrowRight,
@@ -7,7 +23,6 @@ import {
   PackageSearch,
   ShoppingCart,
 } from 'lucide-react'
-import { useDemo } from '@/demo/DemoContext'
 import { useActiveGroup } from '@/lib/active-group'
 import { requireAuth } from '@/lib/route-guards'
 
@@ -208,3 +223,4 @@ function HomePage() {
     </main>
   )
 }
+*/

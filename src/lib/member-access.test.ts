@@ -26,7 +26,7 @@ describe('member access', () => {
       navigationForMember(memberWithRoles('member'), groups[0]).map(
         (item) => item.label,
       ),
-    ).toEqual(['Home', 'Activity', 'Catalog', 'Cart'])
+    ).toEqual(['Activity', 'Catalog', 'Cart'])
     expect(
       navigationForMember(memberWithRoles('group_admin'), groups[1]).map(
         (item) => item.label,

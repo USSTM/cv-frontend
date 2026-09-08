@@ -2,11 +2,10 @@ import type { CurrentMember, MemberGroup } from '@/api/generated/types.gen'
 
 export type NavigationItem = {
   label: string
-  to: '/' | '/activity' | '/catalog' | '/cart' | '/approvals' | '/admin'
+  to: '/activity' | '/catalog' | '/cart' | '/approvals' | '/admin'
 }
 
 const MEMBER_NAVIGATION: NavigationItem[] = [
-  { label: 'Home', to: '/' },
   { label: 'Activity', to: '/activity' },
   { label: 'Catalog', to: '/catalog' },
   { label: 'Cart', to: '/cart' },

@@ -49,7 +49,7 @@ export default function Header() {
       location.pathname === '/admin' &&
       !canManageActiveGroup(currentMember, nextGroup)
     ) {
-      navigate({ to: '/' })
+      navigate({ to: '/activity' })
     }
   }
 
