@@ -729,12 +729,14 @@ function GlobalEditor({
     [],
   )
   useEffect(() => {
-    const normalizedRoles = (rolesQuery.data ?? []).map((role) => ({
-      ...role,
-      scope: scopeForRole(role.role_name),
-      scope_id:
-        scopeForRole(role.role_name) === 'group' ? role.scope_id : undefined,
-    }))
+    const normalizedRoles = (rolesQuery.data ?? []).map((role) => {
+      const scope = role.scope ?? scopeForRole(role.role_name)
+      return {
+        ...role,
+        scope,
+        scope_id: scope === 'group' ? role.scope_id : undefined,
+      }
+    })
     setInitialRoles(normalizedRoles)
     setRoles(normalizedRoles)
   }, [rolesQuery.data, member?.id])
