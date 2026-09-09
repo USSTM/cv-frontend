@@ -170,6 +170,24 @@ export default function LoginForm() {
             </form>
           </>
         )}
+
+        <p className="mt-2 pt-5 text-center text-xs text-(--sea-ink-soft)">
+          &copy; {new Date().getFullYear()} USSTM
+          {' · '}
+          {/* <a
+            href="https://portal.usstm.ca/privacy"
+            className="font-medium text-(--sea-ink-soft) hover:text-(--lagoon-deep)"
+          >
+            Privacy Policy
+          </a>
+          {' · '}
+          <a
+            href="https://portal.usstm.ca/terms"
+            className="font-medium text-(--sea-ink-soft) hover:text-(--lagoon-deep)"
+          >
+            Terms of Service
+          </a> */}
+        </p>
       </section>
     </main>
   )
