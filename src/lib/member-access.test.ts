@@ -32,7 +32,7 @@ describe('member access', () => {
       navigationForMember(memberWithRoles('group_admin'), groups[1]).map(
         (item) => item.label,
       ),
-    ).toContain('Admin')
+    ).toContain('Group Admin')
     expect(
       navigationForMember(memberWithRoles('group_admin'), groups[1]).map(
         (item) => item.label,
@@ -47,7 +47,7 @@ describe('member access', () => {
       navigationForMember(memberWithRoles('global_admin'), groups[0]).map(
         (item) => item.label,
       ),
-    ).toContain('Admin')
+    ).toContain('Global Admin')
   })
 
   it('labels the member role from their standing in the active group', () => {

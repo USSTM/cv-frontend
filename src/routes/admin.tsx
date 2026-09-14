@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
+import { Link, createFileRoute, redirect } from '@tanstack/react-router'
 import {
   Boxes,
   Building2,
@@ -47,24 +47,25 @@ import { Input } from '@/components/ui/input'
 import { useCatalogItemsQuery } from '@/api/catalog-queries'
 import { useActiveGroup } from '@/lib/active-group'
 import { itemTypeClass, itemTypeLabels } from '@/lib/item-type'
-import { hasRole } from '@/lib/member-access'
-import { requireAuth } from '@/lib/route-guards'
+import { requireGlobalAdmin } from '@/lib/route-guards'
 
 export const Route = createFileRoute('/admin')({
-  beforeLoad: requireAuth,
-  component: AdminPage,
+  beforeLoad: async (options) => {
+    await requireGlobalAdmin(options)
+    throw redirect({ to: '/global-admin' })
+  },
+  component: () => null,
 })
 type AdminView = 'members' | 'groups' | 'catalog' | 'group'
 type ManagedMember = { id: string; email: string; role: string }
+type AdminScope = 'global' | 'group'
 
-function AdminPage() {
+export function AdminPage({ scope }: { scope: AdminScope }) {
   const catalogItemsQuery = useCatalogItemsQuery({})
   const catalogItems = catalogItemsQuery.data?.data ?? []
   const { activeGroup } = useActiveGroup()
   const { data: currentMember } = useCurrentMemberQuery()
-  const isGlobalAdmin = currentMember
-    ? hasRole(currentMember, 'global_admin')
-    : false
+  const isGlobalAdmin = scope === 'global'
   const {
     data: users = [],
     isLoading,
@@ -148,7 +149,9 @@ function AdminPage() {
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="island-kicker mb-2 text-(--kicker)!">{title}</p>
-            <h1 className="display-title text-3xl font-bold">Admin</h1>
+            <h1 className="display-title text-3xl font-bold">
+              {isGlobalAdmin ? 'Global Admin' : 'Group Admin'}
+            </h1>
             <p className="mt-2 max-w-2xl text-(--sea-ink-soft)">
               {isGlobalAdmin
                 ? 'Manage member access and roles across Campus Vault.'
@@ -271,7 +274,9 @@ function AdminPage() {
                   members={members}
                   loading={isLoading}
                   error={error}
+                  canEdit={(member) => member.role !== 'group_admin'}
                   onEdit={(member) => {
+                    if (member.role === 'group_admin') return
                     setIsMember(true)
                     setEditing(member)
                   }}
@@ -355,7 +360,9 @@ function AdminPage() {
             <div className="px-5 py-5 sm:px-6">
               <h3 className="mb-5 font-semibold">Catalog overview</h3>
               {catalogItemsQuery.isLoading ? (
-                <p className="text-sm text-(--sea-ink-soft)">Loading catalog…</p>
+                <p className="text-sm text-(--sea-ink-soft)">
+                  Loading catalog…
+                </p>
               ) : catalogItemsQuery.isError ? (
                 <p className="text-sm text-red-700">
                   Could not load the catalog. Try again.
@@ -1013,6 +1020,7 @@ function MemberList({
   error,
   currentMemberId,
   groupNamesByMember,
+  canEdit,
   onEdit,
 }: {
   members: Array<ManagedMember>
@@ -1020,6 +1028,7 @@ function MemberList({
   error: unknown
   currentMemberId?: string
   groupNamesByMember?: Map<string, Array<string>>
+  canEdit?: (member: ManagedMember) => boolean
   onEdit: (member: ManagedMember) => void
 }) {
   if (loading)
@@ -1051,7 +1060,7 @@ function MemberList({
             <Badge className="border-sky-200 bg-sky-50 text-sky-800">
               {label(member.role)}
             </Badge>
-            {member.id !== currentMemberId && (
+            {member.id !== currentMemberId && (canEdit?.(member) ?? true) && (
               <Button
                 type="button"
                 variant="outline"
