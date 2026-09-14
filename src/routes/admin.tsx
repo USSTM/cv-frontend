@@ -28,6 +28,9 @@ import {
 import type {
   Group,
   GroupUser,
+  ItemPostRequest,
+  ItemResponse,
+  ItemType,
   User,
   UserRoleAssignment,
 } from '@/api/generated/types.gen'
@@ -44,7 +47,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { useCatalogItemsQuery } from '@/api/catalog-queries'
+import {
+  useCatalogItemsQuery,
+  useCreateCatalogItemMutation,
+  useDeleteCatalogItemMutation,
+  useUpdateCatalogItemMutation,
+} from '@/api/catalog-queries'
 import { useActiveGroup } from '@/lib/active-group'
 import { itemTypeClass, itemTypeLabels } from '@/lib/item-type'
 import { requireGlobalAdmin } from '@/lib/route-guards'
@@ -59,6 +67,14 @@ export const Route = createFileRoute('/admin')({
 type AdminView = 'members' | 'groups' | 'catalog' | 'group'
 type ManagedMember = { id: string; email: string; role: string }
 type AdminScope = 'global' | 'group'
+type CatalogItemDraft = Omit<ItemPostRequest, 'id' | 'urls'>
+
+const emptyCatalogItem: CatalogItemDraft = {
+  name: '',
+  description: '',
+  type: 'low',
+  stock: 0,
+}
 
 export function AdminPage({ scope }: { scope: AdminScope }) {
   const catalogItemsQuery = useCatalogItemsQuery({})
@@ -82,6 +98,13 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
   const [groupToEdit, setGroupToEdit] = useState<Group | null>(null)
   const [newGroup, setNewGroup] = useState({ name: '', description: '' })
   const [editedGroup, setEditedGroup] = useState({ name: '', description: '' })
+  const [catalogItemToEdit, setCatalogItemToEdit] =
+    useState<ItemResponse | null>(null)
+  const [catalogItemToDelete, setCatalogItemToDelete] =
+    useState<ItemResponse | null>(null)
+  const [creatingCatalogItem, setCreatingCatalogItem] = useState(false)
+  const [catalogItemDraft, setCatalogItemDraft] =
+    useState<CatalogItemDraft>(emptyCatalogItem)
   const invite = useInviteMemberMutation()
   const updateMembership = useUpdateMemberGroupMembershipMutation()
   const groupsQuery = useGroupsQuery(isGlobalAdmin)
@@ -92,6 +115,9 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
   const createGroup = useCreateGroupMutation()
   const deleteGroup = useDeleteGroupMutation()
   const updateGroup = useUpdateGroupMutation()
+  const createCatalogItem = useCreateCatalogItemMutation()
+  const updateCatalogItem = useUpdateCatalogItemMutation()
+  const deleteCatalogItem = useDeleteCatalogItemMutation()
   const title = isGlobalAdmin ? 'Global administration' : 'Group administration'
 
   function addMember() {
@@ -117,6 +143,41 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
       { userId: editing.id, groupId: activeGroup.id, isMember },
       { onSuccess: () => setEditing(null) },
     )
+  }
+
+  function openCatalogItemEditor(item?: ItemResponse) {
+    setCatalogItemToEdit(item ?? null)
+    setCreatingCatalogItem(!item)
+    setCatalogItemDraft(
+      item
+        ? {
+            name: item.name,
+            description: item.description ?? '',
+            type: item.type,
+            stock: item.stock,
+          }
+        : emptyCatalogItem,
+    )
+  }
+
+  function saveCatalogItem() {
+    const input: ItemPostRequest = {
+      id: catalogItemToEdit?.id ?? crypto.randomUUID(),
+      name: catalogItemDraft.name.trim(),
+      description: catalogItemDraft.description?.trim() || undefined,
+      type: catalogItemDraft.type,
+      stock: catalogItemDraft.stock,
+    }
+    if (!input.name) return
+
+    const mutation = catalogItemToEdit ? updateCatalogItem : createCatalogItem
+    mutation.mutate(input, {
+      onSuccess: () => {
+        setCatalogItemToEdit(null)
+        setCreatingCatalogItem(false)
+        setCatalogItemDraft(emptyCatalogItem)
+      },
+    })
   }
   function saveGroup() {
     const name = newGroup.name.trim()
@@ -358,7 +419,25 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
           )}
           {view === 'catalog' && (
             <div className="px-5 py-5 sm:px-6">
-              <h3 className="mb-5 font-semibold">Catalog overview</h3>
+              <div className="mb-5 flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-semibold">Catalog overview</h3>
+                  <p className="mt-1 text-sm text-(--sea-ink-soft)">
+                    {isGlobalAdmin
+                      ? 'Add, edit, or remove Catalog items.'
+                      : 'Browse Catalog items available to your group.'}
+                  </p>
+                </div>
+                {isGlobalAdmin && (
+                  <Button
+                    variant="outline"
+                    className="border-(--line)"
+                    onClick={() => openCatalogItemEditor()}
+                  >
+                    Add item
+                  </Button>
+                )}
+              </div>
               {catalogItemsQuery.isLoading ? (
                 <p className="text-sm text-(--sea-ink-soft)">
                   Loading catalog…
@@ -386,13 +465,124 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
                           {item.stock} available
                         </p>
                       </div>
-                      <Badge className={itemTypeClass(item.type)}>
-                        {itemTypeLabels[item.type]}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge className={itemTypeClass(item.type)}>
+                          {itemTypeLabels[item.type]}
+                        </Badge>
+                        {isGlobalAdmin && (
+                          <>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="border-(--line)"
+                              aria-label={`Edit ${item.name}`}
+                              onClick={() => openCatalogItemEditor(item)}
+                            >
+                              <Pencil aria-hidden="true" size={16} />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="border-red-200 text-red-700 hover:bg-red-50"
+                              aria-label={`Delete ${item.name}`}
+                              onClick={() => setCatalogItemToDelete(item)}
+                            >
+                              <Trash2 aria-hidden="true" size={16} />
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </li>
                   ))}
                 </ul>
               )}
+              <Dialog
+                open={isGlobalAdmin && Boolean(catalogItemToEdit)}
+                onOpenChange={(open) => !open && setCatalogItemToEdit(null)}
+              >
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Edit Catalog item</DialogTitle>
+                    <DialogDescription>
+                      Update the item details available in Campus Vault.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <CatalogItemForm
+                    draft={catalogItemDraft}
+                    onChange={setCatalogItemDraft}
+                    onSubmit={saveCatalogItem}
+                    error={updateCatalogItem.error}
+                    submitting={updateCatalogItem.isPending}
+                    submitLabel="Save changes"
+                  />
+                </DialogContent>
+              </Dialog>
+              <Dialog
+                open={isGlobalAdmin && creatingCatalogItem}
+                onOpenChange={(open) => {
+                  if (!open) {
+                    setCreatingCatalogItem(false)
+                    setCatalogItemDraft(emptyCatalogItem)
+                  }
+                }}
+              >
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add Catalog item</DialogTitle>
+                    <DialogDescription>
+                      Add an item to the Campus Vault Catalog.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <CatalogItemForm
+                    draft={catalogItemDraft}
+                    onChange={setCatalogItemDraft}
+                    onSubmit={saveCatalogItem}
+                    error={createCatalogItem.error}
+                    submitting={createCatalogItem.isPending}
+                    submitLabel="Add item"
+                  />
+                </DialogContent>
+              </Dialog>
+              <Dialog
+                open={Boolean(catalogItemToDelete)}
+                onOpenChange={(open) => !open && setCatalogItemToDelete(null)}
+              >
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Delete Catalog item</DialogTitle>
+                    <DialogDescription>
+                      Delete {catalogItemToDelete?.name}? This cannot be undone.
+                    </DialogDescription>
+                  </DialogHeader>
+                  {deleteCatalogItem.error && (
+                    <ErrorText error={deleteCatalogItem.error} />
+                  )}
+                  <DialogFooter>
+                    <DialogClose asChild>
+                      <Button variant="outline" className="border-(--line)">
+                        Cancel
+                      </Button>
+                    </DialogClose>
+                    <Button
+                      variant="outline"
+                      className="border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
+                      onClick={() =>
+                        catalogItemToDelete &&
+                        deleteCatalogItem.mutate(catalogItemToDelete.id, {
+                          onSuccess: () => setCatalogItemToDelete(null),
+                        })
+                      }
+                      disabled={deleteCatalogItem.isPending}
+                    >
+                      {deleteCatalogItem.isPending
+                        ? 'Deleting…'
+                        : 'Delete item'}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           )}
           {view === 'group' && (
@@ -945,6 +1135,106 @@ function ErrorText({ error }: { error: unknown }) {
     </p>
   )
 }
+
+function CatalogItemForm({
+  draft,
+  onChange,
+  onSubmit,
+  error,
+  submitting,
+  submitLabel,
+}: {
+  draft: CatalogItemDraft
+  onChange: (draft: CatalogItemDraft) => void
+  onSubmit: () => void
+  error: unknown
+  submitting: boolean
+  submitLabel: string
+}) {
+  return (
+    <form
+      className="space-y-4"
+      onSubmit={(event) => {
+        event.preventDefault()
+        onSubmit()
+      }}
+    >
+      <div>
+        <label htmlFor="catalog-item-name" className="text-sm font-semibold">
+          Name
+        </label>
+        <Input
+          id="catalog-item-name"
+          className="mt-2"
+          value={draft.name}
+          onChange={(event) => onChange({ ...draft, name: event.target.value })}
+          required
+        />
+      </div>
+      <div>
+        <label
+          htmlFor="catalog-item-description"
+          className="text-sm font-semibold"
+        >
+          Description <span className="font-normal">(optional)</span>
+        </label>
+        <Input
+          id="catalog-item-description"
+          className="mt-2"
+          value={draft.description ?? ''}
+          onChange={(event) =>
+            onChange({ ...draft, description: event.target.value })
+          }
+        />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="text-sm font-semibold">
+          Item type
+          <select
+            className="mt-2 h-10 w-full rounded-md border border-(--line) bg-white px-3 text-sm"
+            value={draft.type}
+            onChange={(event) =>
+              onChange({ ...draft, type: event.target.value as ItemType })
+            }
+          >
+            <option value="low">Take Item</option>
+            <option value="medium">Borrow Item</option>
+            <option value="high">Request Item</option>
+          </select>
+        </label>
+        <label htmlFor="catalog-item-stock" className="text-sm font-semibold">
+          Stock
+          <Input
+            id="catalog-item-stock"
+            className="mt-2"
+            type="number"
+            min="0"
+            value={draft.stock}
+            onChange={(event) =>
+              onChange({
+                ...draft,
+                stock: Math.max(0, Number(event.target.value) || 0),
+              })
+            }
+            required
+          />
+        </label>
+      </div>
+      {error && <ErrorText error={error} />}
+      <DialogFooter>
+        <DialogClose asChild>
+          <Button variant="outline" className="border-(--line)">
+            Cancel
+          </Button>
+        </DialogClose>
+        <Button type="submit" className="btn-inv" disabled={submitting}>
+          {submitting ? 'Saving…' : submitLabel}
+        </Button>
+      </DialogFooter>
+    </form>
+  )
+}
+
 function GlobalMemberLists({
   members,
   loading,

@@ -3,11 +3,14 @@ import type { CartItemResponse, ItemType } from './generated/types.gen'
 import {
   addItemToCart,
   checkoutCart,
+  createCatalogItem,
+  deleteCatalogItem,
   getCart,
   getCatalogItem,
   getCatalogItems,
   getItemImages,
   removeCartItem,
+  updateCatalogItem,
   updateCartItemQuantity,
 } from './catalog'
 
@@ -35,6 +38,26 @@ export function useItemImagesQuery(itemId: string) {
     queryKey: ['catalog', 'item-images', itemId],
     queryFn: () => getItemImages(itemId),
   })
+}
+
+function useInvalidateCatalog() {
+  const queryClient = useQueryClient()
+  return () => queryClient.invalidateQueries({ queryKey: ['catalog'] })
+}
+
+export function useCreateCatalogItemMutation() {
+  const invalidate = useInvalidateCatalog()
+  return useMutation({ mutationFn: createCatalogItem, onSuccess: invalidate })
+}
+
+export function useUpdateCatalogItemMutation() {
+  const invalidate = useInvalidateCatalog()
+  return useMutation({ mutationFn: updateCatalogItem, onSuccess: invalidate })
+}
+
+export function useDeleteCatalogItemMutation() {
+  const invalidate = useInvalidateCatalog()
+  return useMutation({ mutationFn: deleteCatalogItem, onSuccess: invalidate })
 }
 
 export function useCartQuery(groupId: string | undefined) {

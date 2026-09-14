@@ -2,6 +2,7 @@ import type {
   CartItemResponse,
   CheckoutCartResponse,
   ItemImage,
+  ItemPostRequest,
   ItemResponse,
   ItemType,
   PaginatedItemResponse,
@@ -35,6 +36,23 @@ export function getItemImages(itemId: string) {
   return apiRequest<Array<ItemImage>>(
     `/items/${encodeURIComponent(itemId)}/images`,
   )
+}
+
+export function createCatalogItem(input: ItemPostRequest) {
+  return apiRequest<ItemPostRequest>('/items', { method: 'POST', body: input })
+}
+
+export function updateCatalogItem(input: ItemPostRequest) {
+  return apiRequest<ItemResponse>(`/items/${encodeURIComponent(input.id)}`, {
+    method: 'PUT',
+    body: input,
+  })
+}
+
+export function deleteCatalogItem(itemId: string) {
+  return apiRequest<void>(`/items/${encodeURIComponent(itemId)}`, {
+    method: 'DELETE',
+  })
 }
 
 export function getCart(groupId: string) {
