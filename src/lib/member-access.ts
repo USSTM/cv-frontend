@@ -31,6 +31,10 @@ export function canManageActiveGroup(
   )
 }
 
+export function isGroupAdminForActiveGroup(activeGroup: MemberGroup | null) {
+  return activeGroup?.roles.includes('group_admin') === true
+}
+
 export function roleLabelForMember(
   member: CurrentMember,
   activeGroup: MemberGroup | null,

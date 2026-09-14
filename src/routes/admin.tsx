@@ -985,6 +985,21 @@ function GlobalMemberLists({
   const otherMembers = members.filter(
     (member) => !globalAdmins.some((admin) => admin.id === member.id),
   )
+  const membersByGroup = groups.map((group) => ({
+    group,
+    members: otherMembers.filter((member) =>
+      (assignments.get(member.id) ?? []).some(
+        (assignment) =>
+          assignment.scope === 'group' && assignment.scope_id === group.id,
+      ),
+    ),
+  }))
+  const assignedMemberIds = new Set(
+    membersByGroup.flatMap(({ members }) => members.map((member) => member.id)),
+  )
+  const unassignedMembers = otherMembers.filter(
+    (member) => !assignedMemberIds.has(member.id),
+  )
   return (
     <div className="space-y-7">
       <section>
@@ -1000,17 +1015,34 @@ function GlobalMemberLists({
           onEdit={onEdit}
         />
       </section>
-      <section>
-        <h4 className="mb-3 text-sm font-semibold text-(--sea-ink)">Members</h4>
-        <MemberList
-          members={otherMembers}
-          loading={loading}
-          error={error}
-          currentMemberId={currentMemberId}
-          groupNamesByMember={groupNamesByMember}
-          onEdit={onEdit}
-        />
-      </section>
+      {membersByGroup.map(({ group, members: groupMembers }) => (
+        <section key={group.id}>
+          <h4 className="mb-3 text-sm font-semibold text-(--sea-ink)">
+            {group.name}
+          </h4>
+          <MemberList
+            members={groupMembers}
+            loading={loading}
+            error={error}
+            currentMemberId={currentMemberId}
+            onEdit={onEdit}
+          />
+        </section>
+      ))}
+      {unassignedMembers.length > 0 && (
+        <section>
+          <h4 className="mb-3 text-sm font-semibold text-(--sea-ink)">
+            Unassigned members
+          </h4>
+          <MemberList
+            members={unassignedMembers}
+            loading={loading}
+            error={error}
+            currentMemberId={currentMemberId}
+            onEdit={onEdit}
+          />
+        </section>
+      )}
     </div>
   )
 }

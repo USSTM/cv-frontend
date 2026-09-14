@@ -3,6 +3,7 @@ import type { CurrentMember, MemberGroup } from '@/api/generated/types.gen'
 import {
   activeGroupFor,
   canManageActiveGroup,
+  isGroupAdminForActiveGroup,
   navigationForMember,
   roleLabelForMember,
 } from './member-access'
@@ -81,5 +82,7 @@ describe('member access', () => {
     expect(
       canManageActiveGroup(memberWithRoles('global_admin'), groups[0]),
     ).toBe(true)
+    expect(isGroupAdminForActiveGroup(groups[0])).toBe(false)
+    expect(isGroupAdminForActiveGroup(groups[1])).toBe(true)
   })
 })
