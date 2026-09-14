@@ -9,6 +9,7 @@ import {
   Settings2,
   Trash2,
   UsersRound,
+  X,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
@@ -51,7 +52,10 @@ import {
   useCatalogItemsQuery,
   useCreateCatalogItemMutation,
   useDeleteCatalogItemMutation,
+  useDeleteCatalogItemImageMutation,
+  useItemImagesQuery,
   useUpdateCatalogItemMutation,
+  useUploadCatalogItemImageMutation,
 } from '@/api/catalog-queries'
 import { useActiveGroup } from '@/lib/active-group'
 import { itemTypeClass, itemTypeLabels } from '@/lib/item-type'
@@ -510,6 +514,7 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
                     </DialogDescription>
                   </DialogHeader>
                   <CatalogItemForm
+                    itemId={catalogItemToEdit?.id}
                     draft={catalogItemDraft}
                     onChange={setCatalogItemDraft}
                     onSubmit={saveCatalogItem}
@@ -1137,6 +1142,7 @@ function ErrorText({ error }: { error: unknown }) {
 }
 
 function CatalogItemForm({
+  itemId,
   draft,
   onChange,
   onSubmit,
@@ -1144,6 +1150,7 @@ function CatalogItemForm({
   submitting,
   submitLabel,
 }: {
+  itemId?: string
   draft: CatalogItemDraft
   onChange: (draft: CatalogItemDraft) => void
   onSubmit: () => void
@@ -1151,6 +1158,21 @@ function CatalogItemForm({
   submitting: boolean
   submitLabel: string
 }) {
+  const imagesQuery = useItemImagesQuery(itemId)
+  const uploadImage = useUploadCatalogItemImageMutation()
+  const deleteImage = useDeleteCatalogItemImageMutation()
+
+  function uploadImages(files: FileList | null) {
+    if (!itemId || !files?.length) return
+
+    Array.from(files).forEach((image) => {
+      uploadImage.mutate({
+        itemId,
+        image,
+      })
+    })
+  }
+
   return (
     <form
       className="space-y-4"
@@ -1220,6 +1242,65 @@ function CatalogItemForm({
           />
         </label>
       </div>
+      {itemId ? (
+        <div>
+          <label
+            htmlFor="catalog-item-images"
+            className="text-sm font-semibold"
+          >
+            Item images
+          </label>
+          <Input
+            id="catalog-item-images"
+            className="mt-2"
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={(event) => {
+              uploadImages(event.target.files)
+              event.target.value = ''
+            }}
+            disabled={uploadImage.isPending}
+          />
+          <p className="mt-1 text-xs text-(--sea-ink-soft)">
+            Upload one or more images for this Catalog item.
+          </p>
+          {imagesQuery.data && imagesQuery.data.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {imagesQuery.data.map((image) => (
+                <div key={image.id} className="group/image space-y-1">
+                  <div className="relative">
+                    <img
+                      src={image.thumbnail_url}
+                      alt="Catalog item"
+                      className="size-16 rounded-lg border border-(--line) object-cover"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="absolute -right-2 -top-2 size-6 border-red-200 bg-white p-0 text-red-700 opacity-0 shadow-sm transition-opacity hover:bg-red-50 group-hover/image:opacity-100 group-focus-within/image:opacity-100"
+                      aria-label="Remove Catalog item image"
+                      onClick={() =>
+                        deleteImage.mutate({ itemId, imageId: image.id })
+                      }
+                      disabled={deleteImage.isPending}
+                    >
+                      <X aria-hidden="true" size={14} />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {uploadImage.error && <ErrorText error={uploadImage.error} />}
+          {deleteImage.error && <ErrorText error={deleteImage.error} />}
+        </div>
+      ) : (
+        <p className="text-sm text-(--sea-ink-soft)">
+          Save the item before uploading images.
+        </p>
+      )}
       {error && <ErrorText error={error} />}
       <DialogFooter>
         <DialogClose asChild>

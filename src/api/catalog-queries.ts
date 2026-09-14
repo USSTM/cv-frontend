@@ -4,6 +4,7 @@ import {
   addItemToCart,
   checkoutCart,
   createCatalogItem,
+  deleteCatalogItemImage,
   deleteCatalogItem,
   getCart,
   getCatalogItem,
@@ -11,6 +12,7 @@ import {
   getItemImages,
   removeCartItem,
   updateCatalogItem,
+  uploadCatalogItemImage,
   updateCartItemQuantity,
 } from './catalog'
 
@@ -33,10 +35,11 @@ export function useCatalogItemQuery(itemId: string) {
   })
 }
 
-export function useItemImagesQuery(itemId: string) {
+export function useItemImagesQuery(itemId: string | undefined) {
   return useQuery({
     queryKey: ['catalog', 'item-images', itemId],
-    queryFn: () => getItemImages(itemId),
+    queryFn: () => getItemImages(itemId!),
+    enabled: Boolean(itemId),
   })
 }
 
@@ -58,6 +61,37 @@ export function useUpdateCatalogItemMutation() {
 export function useDeleteCatalogItemMutation() {
   const invalidate = useInvalidateCatalog()
   return useMutation({ mutationFn: deleteCatalogItem, onSuccess: invalidate })
+}
+
+export function useUploadCatalogItemImageMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: uploadCatalogItemImage,
+    onSuccess: async (_, input) => {
+      await queryClient.invalidateQueries({
+        queryKey: ['catalog', 'item-images', input.itemId],
+      })
+      await queryClient.invalidateQueries({ queryKey: ['catalog'] })
+    },
+  })
+}
+
+function useInvalidateItemImages() {
+  const queryClient = useQueryClient()
+  return async (itemId: string) => {
+    await queryClient.invalidateQueries({
+      queryKey: ['catalog', 'item-images', itemId],
+    })
+    await queryClient.invalidateQueries({ queryKey: ['catalog'] })
+  }
+}
+
+export function useDeleteCatalogItemImageMutation() {
+  const invalidate = useInvalidateItemImages()
+  return useMutation({
+    mutationFn: deleteCatalogItemImage,
+    onSuccess: (_, input) => invalidate(input.itemId),
+  })
 }
 
 export function useCartQuery(groupId: string | undefined) {

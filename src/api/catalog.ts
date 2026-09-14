@@ -55,6 +55,26 @@ export function deleteCatalogItem(itemId: string) {
   })
 }
 
+export function uploadCatalogItemImage(input: { itemId: string; image: File }) {
+  const body = new FormData()
+  body.append('image', input.image)
+
+  return apiRequest<ItemImage>(
+    `/items/${encodeURIComponent(input.itemId)}/images`,
+    { method: 'POST', body },
+  )
+}
+
+export function deleteCatalogItemImage(input: {
+  itemId: string
+  imageId: string
+}) {
+  return apiRequest<void>(
+    `/items/${encodeURIComponent(input.itemId)}/images/${encodeURIComponent(input.imageId)}`,
+    { method: 'DELETE' },
+  )
+}
+
 export function getCart(groupId: string) {
   return apiRequest<Array<CartItemResponse>>(
     `/cart/${encodeURIComponent(groupId)}`,

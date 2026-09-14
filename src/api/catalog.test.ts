@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   createCatalogItem,
   deleteCatalogItem,
+  deleteCatalogItemImage,
   updateCatalogItem,
+  uploadCatalogItemImage,
 } from './catalog'
 
 const fetchMock = vi.fn<typeof fetch>()
@@ -47,6 +49,36 @@ describe('catalog API', () => {
     ])
     expect(fetchMock.mock.calls[2]).toEqual([
       new URL('/items/item-1', 'http://localhost:8080'),
+      expect.objectContaining({ method: 'DELETE' }),
+    ])
+  })
+
+  it('uploads an image using multipart form data', async () => {
+    mockResponse({ id: 'image-1' })
+    const image = new File(['image-data'], 'camera.jpg', {
+      type: 'image/jpeg',
+    })
+
+    await uploadCatalogItemImage({
+      itemId: 'item-1',
+      image,
+    })
+
+    const [url, options] = fetchMock.mock.calls[0] ?? []
+    expect(url).toEqual(
+      new URL('/items/item-1/images', 'http://localhost:8080'),
+    )
+    expect(options).toEqual(expect.objectContaining({ method: 'POST' }))
+    expect(options?.body).toBeInstanceOf(FormData)
+  })
+
+  it('removes an image', async () => {
+    mockResponse()
+
+    await deleteCatalogItemImage({ itemId: 'item-1', imageId: 'image-1' })
+
+    expect(fetchMock.mock.calls[0]).toEqual([
+      new URL('/items/item-1/images/image-1', 'http://localhost:8080'),
       expect.objectContaining({ method: 'DELETE' }),
     ])
   })
