@@ -1,12 +1,8 @@
 import { Link, createFileRoute, redirect } from '@tanstack/react-router'
 import {
   Boxes,
-  Building2,
   CircleUserRound,
-  Globe2,
-  PackageCheck,
   Pencil,
-  Settings2,
   Trash2,
   UsersRound,
   X,
@@ -17,6 +13,7 @@ import {
   useCreateGroupMutation,
   useDeleteMemberMutation,
   useDeleteGroupMutation,
+  useGroupQuery,
   useGroupsQuery,
   useInviteMemberMutation,
   useManagedMembersQuery,
@@ -68,7 +65,7 @@ export const Route = createFileRoute('/admin')({
   },
   component: () => null,
 })
-type AdminView = 'members' | 'groups' | 'catalog' | 'group'
+type AdminView = 'members' | 'groups' | 'catalog'
 type ManagedMember = { id: string; email: string; role: string }
 type AdminScope = 'global' | 'group'
 type CatalogItemDraft = Omit<ItemPostRequest, 'id' | 'urls'>
@@ -112,6 +109,10 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
   const invite = useInviteMemberMutation()
   const updateMembership = useUpdateMemberGroupMembershipMutation()
   const groupsQuery = useGroupsQuery(isGlobalAdmin)
+  const activeGroupQuery = useGroupQuery(
+    activeGroup?.id,
+    !isGlobalAdmin && Boolean(activeGroup),
+  )
   const memberRolesQuery = useMembersRolesQueries(
     members.map((member) => member.id),
     isGlobalAdmin,
@@ -213,14 +214,19 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
       <section className="mx-auto max-w-5xl space-y-8">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="island-kicker mb-2 text-(--kicker)!">{title}</p>
+            <p className="island-kicker mb-2 text-(--kicker)!">
+              {isGlobalAdmin ? title : 'Group administration'}
+            </p>
             <h1 className="display-title text-3xl font-bold">
-              {isGlobalAdmin ? 'Global Admin' : 'Group Admin'}
+              {isGlobalAdmin
+                ? 'Global Admin'
+                : (activeGroup?.name ?? 'Group Admin')}
             </h1>
             <p className="mt-2 max-w-2xl text-(--sea-ink-soft)">
               {isGlobalAdmin
                 ? 'Manage member access and roles across Campus Vault.'
-                : 'Manage members and operational data for your Active Group.'}
+                : (activeGroupQuery.data?.description ??
+                  'Manage members and operational data for your Active Group.')}
             </p>
           </div>
           <div className="rounded-xl border border-(--line) bg-white px-4 py-3 shadow-sm">
@@ -290,12 +296,6 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
                 onClick={() => setView('catalog')}
               >
                 Catalog
-              </AdminTab>
-              <AdminTab
-                active={view === 'group'}
-                onClick={() => setView('group')}
-              >
-                Group details
               </AdminTab>
             </div>
           </div>
@@ -588,35 +588,6 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
-            </div>
-          )}
-          {view === 'group' && (
-            <div className="grid gap-5 px-5 py-5 sm:grid-cols-2 sm:px-6">
-              <GroupDetail
-                icon={Building2}
-                label="Group name"
-                value={activeGroup?.name ?? 'No Active Group'}
-              />
-              <GroupDetail
-                icon={UsersRound}
-                label="Membership"
-                value={`${members.length} active members`}
-              />
-              <GroupDetail
-                icon={Settings2}
-                label="Administrator access"
-                value="Managed by role assignments"
-              />
-              <GroupDetail
-                icon={PackageCheck}
-                label="Approval workflow"
-                value="Managed by Approvers"
-              />
-              <GroupDetail
-                icon={Globe2}
-                label="System administration"
-                value="Available to Global Admins"
-              />
             </div>
           )}
         </section>
@@ -1517,30 +1488,5 @@ function AdminTab({
     >
       {children}
     </button>
-  )
-}
-function GroupDetail({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: typeof Building2
-  label: string
-  value: string
-}) {
-  return (
-    <div className="flex gap-3 rounded-xl border border-(--line) bg-(--foam) p-4">
-      <Icon
-        aria-hidden="true"
-        className="mt-0.5 shrink-0 text-(--lagoon-deep)"
-        size={19}
-      />
-      <div>
-        <p className="text-xs font-semibold tracking-wide text-(--sea-ink-soft) uppercase">
-          {label}
-        </p>
-        <p className="mt-1 text-sm font-semibold text-(--sea-ink)">{value}</p>
-      </div>
-    </div>
   )
 }

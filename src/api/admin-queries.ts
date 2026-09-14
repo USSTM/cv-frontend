@@ -11,6 +11,7 @@ import {
   deleteMember,
   deleteGroup,
   getAdminUsers,
+  getGroup,
   getGroups,
   getGroupUsers,
   getUserRoleAssignments,
@@ -36,6 +37,14 @@ export function useManagedMembersQuery(
 
 export function useGroupsQuery(enabled: boolean) {
   return useQuery({ queryKey: ['groups'], queryFn: getGroups, enabled })
+}
+
+export function useGroupQuery(groupId: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: ['groups', groupId],
+    queryFn: () => getGroup(groupId!),
+    enabled: enabled && Boolean(groupId),
+  })
 }
 
 export function useCreateGroupMutation() {
