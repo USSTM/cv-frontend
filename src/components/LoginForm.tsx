@@ -1,6 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
 import { ArrowLeft, CheckCircle2, Mail, ShieldCheck } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { ApiError } from '@/api/client'
 import {
@@ -18,14 +18,60 @@ function errorMessage(error: unknown, fallback: string) {
   return fallback
 }
 
+const LOGIN_PROGRESS_KEY = 'campus-vault-login-progress'
+
+function readLoginProgress() {
+  try {
+    return window.sessionStorage.getItem(LOGIN_PROGRESS_KEY)
+  } catch {
+    return null
+  }
+}
+
+function saveLoginProgress(email: string) {
+  try {
+    window.sessionStorage.setItem(LOGIN_PROGRESS_KEY, email)
+  } catch {
+    // Storage can be unavailable in private browsing contexts.
+  }
+}
+
+function clearLoginProgress() {
+  try {
+    window.sessionStorage.removeItem(LOGIN_PROGRESS_KEY)
+  } catch {
+    // Storage can be unavailable in private browsing contexts.
+  }
+}
+
 export default function LoginForm() {
   const [email, setEmail] = useState('')
   const [passcode, setPasscode] = useState('')
   const [step, setStep] = useState<'email' | 'passcode'>('email')
   const [error, setError] = useState<string | null>(null)
+  const [hasRestoredProgress, setHasRestoredProgress] = useState(false)
   const navigate = useNavigate()
   const requestOtp = useRequestOtpMutation()
   const verifyOtp = useVerifyOtpMutation()
+
+  useEffect(() => {
+    const savedEmail = readLoginProgress()
+    if (savedEmail) {
+      setEmail(savedEmail)
+      setStep('passcode')
+    }
+    setHasRestoredProgress(true)
+  }, [])
+
+  useEffect(() => {
+    if (!hasRestoredProgress) return
+
+    if (step === 'passcode' && email) {
+      saveLoginProgress(email)
+    } else {
+      clearLoginProgress()
+    }
+  }, [email, hasRestoredProgress, step])
 
   async function sendPasscode() {
     setError(null)
@@ -41,6 +87,7 @@ export default function LoginForm() {
     setError(null)
     try {
       await verifyOtp.mutateAsync({ email, code: passcode })
+      clearLoginProgress()
       navigate({ to: '/activity' })
     } catch (err) {
       setError(errorMessage(err, 'That passcode is invalid or expired.'))
@@ -162,6 +209,7 @@ export default function LoginForm() {
                 onClick={() => {
                   setStep('email')
                   setError(null)
+                  clearLoginProgress()
                 }}
               >
                 <ArrowLeft aria-hidden="true" size={16} />
