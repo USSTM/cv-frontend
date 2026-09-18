@@ -11,6 +11,10 @@ export async function requireAuth({
 }: {
   context: { queryClient: QueryClient }
 }) {
+  // The API owns the HTTP-only session cookies. They are available to the
+  // browser's credentialed request but not to the frontend SSR request.
+  if (typeof window === 'undefined') return
+
   try {
     await context.queryClient.ensureQueryData({
       queryKey: currentMemberQueryKey,
@@ -80,6 +84,8 @@ export async function redirectIfAuthenticated({
 }: {
   context: { queryClient: QueryClient }
 }) {
+  if (typeof window === 'undefined') return
+
   try {
     await context.queryClient.ensureQueryData({
       queryKey: currentMemberQueryKey,
