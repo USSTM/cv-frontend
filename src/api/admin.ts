@@ -51,6 +51,19 @@ export function updateGroup(input: { groupId: string } & GroupUpdateRequest) {
   })
 }
 
+export function uploadGroupLogo(input: { groupId: string; image: File }) {
+  const body = new FormData()
+  body.append('image', input.image)
+
+  return apiRequest<Group>(
+    `/groups/${encodeURIComponent(input.groupId)}/logo`,
+    {
+      method: 'PUT',
+      body,
+    },
+  )
+}
+
 export function inviteMember(input: InviteUserRequest) {
   return apiRequest('/admin/invite', { method: 'POST', body: input })
 }
