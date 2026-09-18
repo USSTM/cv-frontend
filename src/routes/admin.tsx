@@ -504,7 +504,7 @@ function AdminPage() {
                 htmlFor="group-description"
                 className="text-sm font-semibold"
               >
-                Description <span className="font-normal">(optional)</span>
+                Expanded Name <span className="font-normal">(optional)</span>
               </label>
               <Input
                 id="group-description"
@@ -613,7 +613,7 @@ function AdminPage() {
                 htmlFor="edit-group-description"
                 className="text-sm font-semibold"
               >
-                Description <span className="font-normal">(optional)</span>
+                Expanded Name <span className="font-normal">(optional)</span>
               </label>
               <Input
                 id="edit-group-description"
