@@ -4,6 +4,7 @@ import {
   Building2,
   CircleUserRound,
   Globe2,
+  ImagePlus,
   PackageCheck,
   Pencil,
   Settings2,
@@ -24,6 +25,7 @@ import {
   useUpdateMemberGroupMembershipMutation,
   useUpdateMemberRolesMutation,
   useUpdateGroupMutation,
+  useUploadGroupLogoMutation,
 } from '@/api/admin-queries'
 import type {
   Group,
@@ -81,6 +83,8 @@ function AdminPage() {
   const [groupToEdit, setGroupToEdit] = useState<Group | null>(null)
   const [newGroup, setNewGroup] = useState({ name: '', description: '' })
   const [editedGroup, setEditedGroup] = useState({ name: '', description: '' })
+  const [newGroupLogo, setNewGroupLogo] = useState<File | null>(null)
+  const [editedGroupLogo, setEditedGroupLogo] = useState<File | null>(null)
   const invite = useInviteMemberMutation()
   const updateMembership = useUpdateMemberGroupMembershipMutation()
   const groupsQuery = useGroupsQuery(isGlobalAdmin)
@@ -91,6 +95,7 @@ function AdminPage() {
   const createGroup = useCreateGroupMutation()
   const deleteGroup = useDeleteGroupMutation()
   const updateGroup = useUpdateGroupMutation()
+  const uploadGroupLogo = useUploadGroupLogoMutation()
   const title = isGlobalAdmin ? 'Global administration' : 'Group administration'
 
   function addMember() {
@@ -117,29 +122,46 @@ function AdminPage() {
       { onSuccess: () => setEditing(null) },
     )
   }
-  function saveGroup() {
+  async function saveGroup() {
     const name = newGroup.name.trim()
     if (!name) return
-    createGroup.mutate(
-      { name, description: newGroup.description.trim() || undefined },
-      {
-        onSuccess: () => {
-          setNewGroup({ name: '', description: '' })
-          setCreatingGroup(false)
-        },
-      },
-    )
+    try {
+      const group = await createGroup.mutateAsync({
+        name,
+        description: newGroup.description.trim() || undefined,
+      })
+      if (newGroupLogo) {
+        await uploadGroupLogo.mutateAsync({
+          groupId: group.id,
+          image: newGroupLogo,
+        })
+      }
+      setNewGroup({ name: '', description: '' })
+      setNewGroupLogo(null)
+      setCreatingGroup(false)
+    } catch {
+      // Mutation errors are shown in the form below.
+    }
   }
-  function saveEditedGroup() {
+  async function saveEditedGroup() {
     if (!groupToEdit || !editedGroup.name.trim()) return
-    updateGroup.mutate(
-      {
+    try {
+      await updateGroup.mutateAsync({
         groupId: groupToEdit.id,
         name: editedGroup.name.trim(),
         description: editedGroup.description.trim() || undefined,
-      },
-      { onSuccess: () => setGroupToEdit(null) },
-    )
+      })
+      if (editedGroupLogo) {
+        await uploadGroupLogo.mutateAsync({
+          groupId: groupToEdit.id,
+          image: editedGroupLogo,
+        })
+      }
+      setEditedGroupLogo(null)
+      setGroupToEdit(null)
+    } catch {
+      // Mutation errors are shown in the form below.
+    }
   }
 
   return (
@@ -291,7 +313,11 @@ function AdminPage() {
                 <Button
                   variant="outline"
                   className="border-(--line)"
-                  onClick={() => setCreatingGroup(true)}
+                  onClick={() => {
+                    setNewGroup({ name: '', description: '' })
+                    setNewGroupLogo(null)
+                    setCreatingGroup(true)
+                  }}
                 >
                   Create group
                 </Button>
@@ -307,15 +333,28 @@ function AdminPage() {
                       key={group.id}
                       className="flex items-center justify-between gap-4 p-4 sm:p-5"
                     >
-                      <div className="min-w-0">
-                        <p className="font-semibold text-(--sea-ink)">
-                          {group.name}
-                        </p>
-                        {group.description && (
-                          <p className="mt-1 truncate text-sm text-(--sea-ink-soft)">
-                            {group.description}
-                          </p>
+                      <div className="flex min-w-0 items-center gap-3">
+                        {(group.logo_thumbnail_url ?? group.logo_url) ? (
+                          <img
+                            src={group.logo_thumbnail_url ?? group.logo_url}
+                            alt={`${group.name} logo`}
+                            className="size-10 shrink-0 rounded-lg border border-(--line) object-cover"
+                          />
+                        ) : (
+                          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-(--line) bg-(--sand) text-(--lagoon-deep)">
+                            <Building2 aria-hidden="true" size={18} />
+                          </div>
                         )}
+                        <div className="min-w-0">
+                          <p className="font-semibold text-(--sea-ink)">
+                            {group.name}
+                          </p>
+                          {group.description && (
+                            <p className="mt-1 truncate text-sm text-(--sea-ink-soft)">
+                              {group.description}
+                            </p>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <Button
@@ -329,6 +368,7 @@ function AdminPage() {
                               name: group.name,
                               description: group.description ?? '',
                             })
+                            setEditedGroupLogo(null)
                             setGroupToEdit(group)
                           }}
                         >
@@ -355,7 +395,9 @@ function AdminPage() {
             <div className="px-5 py-5 sm:px-6">
               <h3 className="mb-5 font-semibold">Catalog overview</h3>
               {catalogItemsQuery.isLoading ? (
-                <p className="text-sm text-(--sea-ink-soft)">Loading catalog…</p>
+                <p className="text-sm text-(--sea-ink-soft)">
+                  Loading catalog…
+                </p>
               ) : catalogItemsQuery.isError ? (
                 <p className="text-sm text-red-700">
                   Could not load the catalog. Try again.
@@ -518,7 +560,14 @@ function AdminPage() {
                 }
               />
             </div>
-            {createGroup.error && <ErrorText error={createGroup.error} />}
+            <LogoUpload
+              id="group-logo"
+              file={newGroupLogo}
+              onChange={setNewGroupLogo}
+            />
+            {(createGroup.error || uploadGroupLogo.error) && (
+              <ErrorText error={createGroup.error ?? uploadGroupLogo.error} />
+            )}
             <DialogFooter>
               <DialogClose asChild>
                 <Button variant="outline" className="border-(--line)">
@@ -528,9 +577,11 @@ function AdminPage() {
               <Button
                 type="submit"
                 className="btn-inv"
-                disabled={createGroup.isPending}
+                disabled={createGroup.isPending || uploadGroupLogo.isPending}
               >
-                {createGroup.isPending ? 'Creating…' : 'Create group'}
+                {createGroup.isPending || uploadGroupLogo.isPending
+                  ? 'Saving…'
+                  : 'Create group'}
               </Button>
             </DialogFooter>
           </form>
@@ -627,7 +678,14 @@ function AdminPage() {
                 }
               />
             </div>
-            {updateGroup.error && <ErrorText error={updateGroup.error} />}
+            <LogoUpload
+              id="edit-group-logo"
+              file={editedGroupLogo}
+              onChange={setEditedGroupLogo}
+            />
+            {(updateGroup.error || uploadGroupLogo.error) && (
+              <ErrorText error={updateGroup.error ?? uploadGroupLogo.error} />
+            )}
             <DialogFooter>
               <Button
                 type="button"
@@ -640,9 +698,11 @@ function AdminPage() {
               <Button
                 type="submit"
                 className="btn-inv"
-                disabled={updateGroup.isPending}
+                disabled={updateGroup.isPending || uploadGroupLogo.isPending}
               >
-                {updateGroup.isPending ? 'Saving…' : 'Save changes'}
+                {updateGroup.isPending || uploadGroupLogo.isPending
+                  ? 'Saving…'
+                  : 'Save changes'}
               </Button>
             </DialogFooter>
           </form>
@@ -1107,6 +1167,46 @@ function AdminTab({
     </button>
   )
 }
+
+function LogoUpload({
+  id,
+  file,
+  onChange,
+}: {
+  id: string
+  file: File | null
+  onChange: (file: File | null) => void
+}) {
+  return (
+    <div>
+      <label htmlFor={id} className="text-sm font-semibold">
+        Group logo <span className="font-normal">(optional)</span>
+      </label>
+      <div className="mt-2 flex items-center gap-3 rounded-lg border border-dashed border-(--line) bg-(--sand) p-3">
+        <ImagePlus
+          aria-hidden="true"
+          className="shrink-0 text-(--lagoon-deep)"
+          size={20}
+        />
+        <div className="min-w-0 flex-1">
+          <input
+            id={id}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-(--header-bg) file:px-3 file:py-2 file:font-semibold file:text-white"
+            onChange={(event) => onChange(event.target.files?.[0] ?? null)}
+          />
+          <p className="mt-1 text-xs text-(--sea-ink-soft)">
+            {file
+              ? `${file.name} selected`
+              : 'Upload a square PNG, JPEG, or WebP image.'}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function GroupDetail({
   icon: Icon,
   label,

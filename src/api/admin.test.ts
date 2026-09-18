@@ -10,6 +10,7 @@ import {
   updateGroup,
   updateMemberGroupMembership,
   updateMemberRoles,
+  uploadGroupLogo,
 } from './admin'
 
 const fetchMock = vi.fn<typeof fetch>()
@@ -142,5 +143,23 @@ describe('admin API', () => {
       new URL('/groups/group-1', 'http://localhost:8080'),
       expect.objectContaining({ method: 'DELETE' }),
     ])
+  })
+
+  it('uploads a group logo as multipart form data', async () => {
+    mockResponse({ id: 'group-1', name: 'Physics Society' })
+    const image = new File(['logo'], 'logo.png', { type: 'image/png' })
+
+    await uploadGroupLogo({ groupId: 'group-1', image })
+
+    const request = fetchMock.mock.calls[0]
+    expect(request?.[0]).toEqual(
+      new URL('/groups/group-1/logo', 'http://localhost:8080'),
+    )
+    const body = (request?.[1] as RequestInit | undefined)?.body
+    expect(body).toBeInstanceOf(FormData)
+    expect((body as FormData).get('image')).toBe(image)
+    expect(
+      (request?.[1] as RequestInit | undefined)?.headers,
+    ).not.toHaveProperty('Content-Type')
   })
 })

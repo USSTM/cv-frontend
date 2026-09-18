@@ -18,6 +18,7 @@ import {
   updateMemberGroupMembership,
   updateMemberRoles,
   updateGroup,
+  uploadGroupLogo,
 } from './admin'
 
 export const managedMembersQueryKey = (groupId?: string, global = false) =>
@@ -58,6 +59,14 @@ export function useUpdateGroupMutation() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: updateGroup,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['groups'] }),
+  })
+}
+
+export function useUploadGroupLogoMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: uploadGroupLogo,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['groups'] }),
   })
 }
