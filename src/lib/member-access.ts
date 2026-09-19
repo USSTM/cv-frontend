@@ -41,6 +41,7 @@ export function roleLabelForMember(
 ): string {
   if (hasRole(member, 'global_admin')) return 'Global Admin'
   if (activeGroup?.roles.includes('group_admin')) return 'Group Admin'
+  if (hasRole(member, 'approver')) return 'Approver'
   return 'Member'
 }
 

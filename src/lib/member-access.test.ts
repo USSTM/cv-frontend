@@ -66,6 +66,9 @@ describe('member access', () => {
     expect(roleLabelForMember(memberWithRoles('global_admin'), groups[0])).toBe(
       'Global Admin',
     )
+    expect(roleLabelForMember(memberWithRoles('approver'), groups[0])).toBe(
+      'Approver',
+    )
     expect(roleLabelForMember(memberWithRoles('global_admin'), groups[1])).toBe(
       'Global Admin',
     )
