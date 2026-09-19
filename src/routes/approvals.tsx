@@ -41,22 +41,7 @@ type ApprovalBody = {
   return_location: string
 }
 type View = 'pending' | 'all'
-type DisplayRequest = RequestItemResponse & {
-  sample?: boolean
-}
-
-const SAMPLE_REQUEST: DisplayRequest = {
-  id: 'frontend-sample-request',
-  user_id: 'sample-member',
-  group_id: 'sample-group',
-  item_id: 'sample-item',
-  quantity: 1,
-  status: 'pending',
-  item_name: 'DSLR Camera Kit',
-  requester_email: 'jordan.lee@example.com',
-  group_name: 'Student Media',
-  sample: true,
-}
+type DisplayRequest = RequestItemResponse
 
 function ApprovalsPage() {
   const pending = usePendingRequestsQuery()
@@ -69,10 +54,7 @@ function ApprovalsPage() {
   const [openId, setOpenId] = useState<string | null>(null)
   const [approvingId, setApprovingId] = useState<string | null>(null)
   const activeQuery = view === 'pending' ? pending : allRequests
-  const requests: DisplayRequest[] = [
-    ...(activeQuery.data?.data ?? []),
-    SAMPLE_REQUEST,
-  ]
+  const requests: DisplayRequest[] = activeQuery.data?.data ?? []
   const ownAvailability = useMemo(
     () =>
       availability.data?.filter((entry) => entry.user_id === member?.id) ?? [],
@@ -209,7 +191,8 @@ function AvailabilityPanel({
   }>
   referencedAvailabilityIds: Set<string>
 }) {
-  const [date, setDate] = useState(() => dateValue(new Date()))
+  const today = useMemo(() => dateValue(new Date()), [])
+  const [date, setDate] = useState(today)
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()))
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime] = useState('')
@@ -232,14 +215,19 @@ function AvailabilityPanel({
       ),
     [showExtendedHours, timeSlots.data],
   )
+  const startTimeOptions = useMemo(
+    () =>
+      [...new Set(visibleTimeSlots.map((slot) => slot.start_time))].sort(),
+    [visibleTimeSlots],
+  )
+  const endTimeOptions = useMemo(
+    () => [...new Set(visibleTimeSlots.map((slot) => slot.end_time))].sort(),
+    [visibleTimeSlots],
+  )
   const startMinutes = startTime ? timeValue(startTime) : null
   const endMinutes = endTime ? timeValue(endTime) : null
   const hasValidRange =
-    startMinutes !== null &&
-    endMinutes !== null &&
-    startMinutes < endMinutes &&
-    startMinutes % 15 === 0 &&
-    endMinutes % 15 === 0
+    startMinutes !== null && endMinutes !== null && startMinutes < endMinutes
   const timeSlotIds = useMemo(
     () =>
       !hasValidRange
@@ -262,7 +250,7 @@ function AvailabilityPanel({
   )
 
   function addAvailability() {
-    if (!date || timeSlotIds.length === 0) return
+    if (!date || date < today || timeSlotIds.length === 0) return
     createAvailability.mutate(
       { date, timeSlotIds },
       {
@@ -317,14 +305,16 @@ function AvailabilityPanel({
           {days.map((day) => {
             const value = dateValue(day)
             const selected = value === date
+            const isPast = value < today
             const available = availability.some((slot) => slot.date === value)
             return (
               <button
                 key={value}
                 type="button"
                 onClick={() => setDate(value)}
+                disabled={isPast}
                 aria-pressed={selected}
-                className={`relative flex min-h-14 flex-col items-center justify-center rounded-lg text-xs font-semibold ${selected ? 'bg-(--lagoon-deep) text-white' : 'bg-white text-(--sea-ink)'}`}
+                className={`relative flex min-h-14 flex-col items-center justify-center rounded-lg text-xs font-semibold ${selected ? 'bg-(--lagoon-deep) text-white' : isPast ? 'bg-white text-(--sea-ink-soft) opacity-40' : 'bg-white text-(--sea-ink)'}`}
               >
                 <span className="text-[10px] uppercase opacity-70">
                   {new Intl.DateTimeFormat('en-US', {
@@ -400,33 +390,39 @@ function AvailabilityPanel({
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <label className="text-sm font-medium">
               Start time
-              <input
-                type="time"
-                step="900"
-                min={showExtendedHours ? undefined : '07:00'}
-                max={showExtendedHours ? undefined : '21:00'}
+              <select
                 value={startTime}
                 onChange={(event) => setStartTime(event.target.value)}
                 className="mt-1 block h-11 w-full rounded-lg border border-(--line) bg-white px-3"
-              />
+              >
+                <option value="">Select a start time</option>
+                {startTimeOptions.map((value) => (
+                  <option key={value} value={value}>
+                    {formatAvailabilityTime(value)}
+                  </option>
+                ))}
+              </select>
             </label>
             <label className="text-sm font-medium">
               End time
-              <input
-                type="time"
-                step="900"
-                min={showExtendedHours ? undefined : '07:00'}
-                max={showExtendedHours ? undefined : '21:00'}
+              <select
                 value={endTime}
                 onChange={(event) => setEndTime(event.target.value)}
                 className="mt-1 block h-11 w-full rounded-lg border border-(--line) bg-white px-3"
-              />
+              >
+                <option value="">Select an end time</option>
+                {endTimeOptions.map((value) => (
+                  <option key={value} value={value}>
+                    {formatAvailabilityTime(value)}
+                  </option>
+                ))}
+              </select>
             </label>
           </div>
         )}
         {startTime && endTime && !hasValidRange && (
           <p className="mt-3 text-sm text-red-700">
-            Choose an end time after the start time, using 15-minute intervals.
+            Choose an end time after the start time.
           </p>
         )}
         {hasValidRange && (
@@ -439,7 +435,11 @@ function AvailabilityPanel({
         <button
           type="button"
           className="mt-3 text-xs font-semibold text-(--lagoon-deep)"
-          onClick={() => setShowExtendedHours((current) => !current)}
+          onClick={() => {
+            setShowExtendedHours((current) => !current)
+            setStartTime('')
+            setEndTime('')
+          }}
         >
           {showExtendedHours ? 'Filter to 7am–9pm' : 'Show extended hours'}
         </button>
@@ -449,6 +449,7 @@ function AvailabilityPanel({
             className="btn-inv"
             disabled={
               !date ||
+              date < today ||
               !hasValidRange ||
               timeSlotIds.length === 0 ||
               createAvailability.isPending
@@ -577,11 +578,6 @@ function RequestRow({
             {request.group_name ?? `Group ${request.group_id}`} · Qty.{' '}
             {request.quantity}
           </p>
-          {request.sample && (
-            <p className="mt-1 text-xs font-medium text-(--sea-ink-soft)">
-              Frontend-only sample
-            </p>
-          )}
         </div>
       </button>
       {open && (
@@ -601,11 +597,7 @@ function RequestRow({
                 </dd>
               </div>
             </dl>
-            {request.sample ? (
-              <p className="rounded-xl border border-(--line) bg-white p-4 text-sm text-(--sea-ink-soft)">
-                This is a frontend-only sample and cannot be approved or denied.
-              </p>
-            ) : !pending ? (
+            {!pending ? (
               <p className="rounded-xl border border-(--line) bg-white p-4 text-sm text-(--sea-ink-soft)">
                 This Request has already been {request.status}.
               </p>
@@ -669,6 +661,11 @@ function ApprovalForm({
   onCancel: () => void
 }) {
   const [availabilityId, setAvailabilityId] = useState('')
+  const today = useMemo(() => dateValue(new Date()), [])
+  const upcomingAvailability = useMemo(
+    () => availability.filter((slot) => slot.date >= today),
+    [availability, today],
+  )
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -701,7 +698,7 @@ function ApprovalForm({
             className="mt-1 w-full rounded-lg border border-(--line) bg-white px-3 py-2"
           >
             <option value="">Select a collection window</option>
-            {availability.map((slot) => (
+            {upcomingAvailability.map((slot) => (
               <option key={slot.id} value={slot.id}>
                 {slot.date} · {slot.start_time}–{slot.end_time}
               </option>

@@ -1,14 +1,11 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
+import { Link, createFileRoute, redirect } from '@tanstack/react-router'
 import {
   Boxes,
-  Building2,
   CircleUserRound,
-  Globe2,
-  PackageCheck,
   Pencil,
-  Settings2,
   Trash2,
   UsersRound,
+  X,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
@@ -16,6 +13,7 @@ import {
   useCreateGroupMutation,
   useDeleteMemberMutation,
   useDeleteGroupMutation,
+  useGroupQuery,
   useGroupsQuery,
   useInviteMemberMutation,
   useManagedMembersQuery,
@@ -28,6 +26,9 @@ import {
 import type {
   Group,
   GroupUser,
+  ItemPostRequest,
+  ItemResponse,
+  ItemType,
   User,
   UserRoleAssignment,
 } from '@/api/generated/types.gen'
@@ -44,27 +45,44 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { useCatalogItemsQuery } from '@/api/catalog-queries'
+import {
+  useCatalogItemsQuery,
+  useCreateCatalogItemMutation,
+  useDeleteCatalogItemMutation,
+  useDeleteCatalogItemImageMutation,
+  useItemImagesQuery,
+  useUpdateCatalogItemMutation,
+  useUploadCatalogItemImageMutation,
+} from '@/api/catalog-queries'
 import { useActiveGroup } from '@/lib/active-group'
 import { itemTypeClass, itemTypeLabels } from '@/lib/item-type'
-import { hasRole } from '@/lib/member-access'
-import { requireAuth } from '@/lib/route-guards'
+import { requireGlobalAdmin } from '@/lib/route-guards'
 
 export const Route = createFileRoute('/admin')({
-  beforeLoad: requireAuth,
-  component: AdminPage,
+  beforeLoad: async (options) => {
+    await requireGlobalAdmin(options)
+    throw redirect({ to: '/global-admin' })
+  },
+  component: () => null,
 })
-type AdminView = 'members' | 'groups' | 'catalog' | 'group'
+type AdminView = 'members' | 'groups' | 'catalog'
 type ManagedMember = { id: string; email: string; role: string }
+type AdminScope = 'global' | 'group'
+type CatalogItemDraft = Omit<ItemPostRequest, 'id' | 'urls'>
 
-function AdminPage() {
+const emptyCatalogItem: CatalogItemDraft = {
+  name: '',
+  description: '',
+  type: 'low',
+  stock: 0,
+}
+
+export function AdminPage({ scope }: { scope: AdminScope }) {
   const catalogItemsQuery = useCatalogItemsQuery({})
   const catalogItems = catalogItemsQuery.data?.data ?? []
   const { activeGroup } = useActiveGroup()
   const { data: currentMember } = useCurrentMemberQuery()
-  const isGlobalAdmin = currentMember
-    ? hasRole(currentMember, 'global_admin')
-    : false
+  const isGlobalAdmin = scope === 'global'
   const {
     data: users = [],
     isLoading,
@@ -81,9 +99,20 @@ function AdminPage() {
   const [groupToEdit, setGroupToEdit] = useState<Group | null>(null)
   const [newGroup, setNewGroup] = useState({ name: '', description: '' })
   const [editedGroup, setEditedGroup] = useState({ name: '', description: '' })
+  const [catalogItemToEdit, setCatalogItemToEdit] =
+    useState<ItemResponse | null>(null)
+  const [catalogItemToDelete, setCatalogItemToDelete] =
+    useState<ItemResponse | null>(null)
+  const [creatingCatalogItem, setCreatingCatalogItem] = useState(false)
+  const [catalogItemDraft, setCatalogItemDraft] =
+    useState<CatalogItemDraft>(emptyCatalogItem)
   const invite = useInviteMemberMutation()
   const updateMembership = useUpdateMemberGroupMembershipMutation()
   const groupsQuery = useGroupsQuery(isGlobalAdmin)
+  const activeGroupQuery = useGroupQuery(
+    activeGroup?.id,
+    !isGlobalAdmin && Boolean(activeGroup),
+  )
   const memberRolesQuery = useMembersRolesQueries(
     members.map((member) => member.id),
     isGlobalAdmin,
@@ -91,6 +120,9 @@ function AdminPage() {
   const createGroup = useCreateGroupMutation()
   const deleteGroup = useDeleteGroupMutation()
   const updateGroup = useUpdateGroupMutation()
+  const createCatalogItem = useCreateCatalogItemMutation()
+  const updateCatalogItem = useUpdateCatalogItemMutation()
+  const deleteCatalogItem = useDeleteCatalogItemMutation()
   const title = isGlobalAdmin ? 'Global administration' : 'Group administration'
 
   function addMember() {
@@ -116,6 +148,41 @@ function AdminPage() {
       { userId: editing.id, groupId: activeGroup.id, isMember },
       { onSuccess: () => setEditing(null) },
     )
+  }
+
+  function openCatalogItemEditor(item?: ItemResponse) {
+    setCatalogItemToEdit(item ?? null)
+    setCreatingCatalogItem(!item)
+    setCatalogItemDraft(
+      item
+        ? {
+            name: item.name,
+            description: item.description ?? '',
+            type: item.type,
+            stock: item.stock,
+          }
+        : emptyCatalogItem,
+    )
+  }
+
+  function saveCatalogItem() {
+    const input: ItemPostRequest = {
+      id: catalogItemToEdit?.id ?? crypto.randomUUID(),
+      name: catalogItemDraft.name.trim(),
+      description: catalogItemDraft.description?.trim() || undefined,
+      type: catalogItemDraft.type,
+      stock: catalogItemDraft.stock,
+    }
+    if (!input.name) return
+
+    const mutation = catalogItemToEdit ? updateCatalogItem : createCatalogItem
+    mutation.mutate(input, {
+      onSuccess: () => {
+        setCatalogItemToEdit(null)
+        setCreatingCatalogItem(false)
+        setCatalogItemDraft(emptyCatalogItem)
+      },
+    })
   }
   function saveGroup() {
     const name = newGroup.name.trim()
@@ -147,12 +214,19 @@ function AdminPage() {
       <section className="mx-auto max-w-5xl space-y-8">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="island-kicker mb-2 text-(--kicker)!">{title}</p>
-            <h1 className="display-title text-3xl font-bold">Admin</h1>
+            <p className="island-kicker mb-2 text-(--kicker)!">
+              {isGlobalAdmin ? title : 'Group administration'}
+            </p>
+            <h1 className="display-title text-3xl font-bold">
+              {isGlobalAdmin
+                ? 'Global Admin'
+                : (activeGroup?.name ?? 'Group Admin')}
+            </h1>
             <p className="mt-2 max-w-2xl text-(--sea-ink-soft)">
               {isGlobalAdmin
                 ? 'Manage member access and roles across Campus Vault.'
-                : 'Manage members and operational data for your Active Group.'}
+                : (activeGroupQuery.data?.description ??
+                  'Manage members and operational data for your Active Group.')}
             </p>
           </div>
           <div className="rounded-xl border border-(--line) bg-white px-4 py-3 shadow-sm">
@@ -223,12 +297,6 @@ function AdminPage() {
               >
                 Catalog
               </AdminTab>
-              <AdminTab
-                active={view === 'group'}
-                onClick={() => setView('group')}
-              >
-                Group details
-              </AdminTab>
             </div>
           </div>
           {view === 'members' && (
@@ -271,10 +339,13 @@ function AdminPage() {
                   members={members}
                   loading={isLoading}
                   error={error}
+                  canEdit={(member) => member.role !== 'group_admin'}
                   onEdit={(member) => {
+                    if (member.role === 'group_admin') return
                     setIsMember(true)
                     setEditing(member)
                   }}
+                  emptyMessage="Group has no members"
                 />
               )}
             </div>
@@ -353,9 +424,29 @@ function AdminPage() {
           )}
           {view === 'catalog' && (
             <div className="px-5 py-5 sm:px-6">
-              <h3 className="mb-5 font-semibold">Catalog overview</h3>
+              <div className="mb-5 flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-semibold">Catalog overview</h3>
+                  <p className="mt-1 text-sm text-(--sea-ink-soft)">
+                    {isGlobalAdmin
+                      ? 'Add, edit, or remove Catalog items.'
+                      : 'Browse Catalog items available to your group.'}
+                  </p>
+                </div>
+                {isGlobalAdmin && (
+                  <Button
+                    variant="outline"
+                    className="border-(--line)"
+                    onClick={() => openCatalogItemEditor()}
+                  >
+                    Add item
+                  </Button>
+                )}
+              </div>
               {catalogItemsQuery.isLoading ? (
-                <p className="text-sm text-(--sea-ink-soft)">Loading catalog…</p>
+                <p className="text-sm text-(--sea-ink-soft)">
+                  Loading catalog…
+                </p>
               ) : catalogItemsQuery.isError ? (
                 <p className="text-sm text-red-700">
                   Could not load the catalog. Try again.
@@ -379,42 +470,125 @@ function AdminPage() {
                           {item.stock} available
                         </p>
                       </div>
-                      <Badge className={itemTypeClass(item.type)}>
-                        {itemTypeLabels[item.type]}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge className={itemTypeClass(item.type)}>
+                          {itemTypeLabels[item.type]}
+                        </Badge>
+                        {isGlobalAdmin && (
+                          <>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="border-(--line)"
+                              aria-label={`Edit ${item.name}`}
+                              onClick={() => openCatalogItemEditor(item)}
+                            >
+                              <Pencil aria-hidden="true" size={16} />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="border-red-200 text-red-700 hover:bg-red-50"
+                              aria-label={`Delete ${item.name}`}
+                              onClick={() => setCatalogItemToDelete(item)}
+                            >
+                              <Trash2 aria-hidden="true" size={16} />
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </li>
                   ))}
                 </ul>
               )}
-            </div>
-          )}
-          {view === 'group' && (
-            <div className="grid gap-5 px-5 py-5 sm:grid-cols-2 sm:px-6">
-              <GroupDetail
-                icon={Building2}
-                label="Group name"
-                value={activeGroup?.name ?? 'No Active Group'}
-              />
-              <GroupDetail
-                icon={UsersRound}
-                label="Membership"
-                value={`${members.length} active members`}
-              />
-              <GroupDetail
-                icon={Settings2}
-                label="Administrator access"
-                value="Managed by role assignments"
-              />
-              <GroupDetail
-                icon={PackageCheck}
-                label="Approval workflow"
-                value="Managed by Approvers"
-              />
-              <GroupDetail
-                icon={Globe2}
-                label="System administration"
-                value="Available to Global Admins"
-              />
+              <Dialog
+                open={isGlobalAdmin && Boolean(catalogItemToEdit)}
+                onOpenChange={(open) => !open && setCatalogItemToEdit(null)}
+              >
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Edit Catalog item</DialogTitle>
+                    <DialogDescription>
+                      Update the item details available in Campus Vault.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <CatalogItemForm
+                    itemId={catalogItemToEdit?.id}
+                    draft={catalogItemDraft}
+                    onChange={setCatalogItemDraft}
+                    onSubmit={saveCatalogItem}
+                    error={updateCatalogItem.error}
+                    submitting={updateCatalogItem.isPending}
+                    submitLabel="Save changes"
+                  />
+                </DialogContent>
+              </Dialog>
+              <Dialog
+                open={isGlobalAdmin && creatingCatalogItem}
+                onOpenChange={(open) => {
+                  if (!open) {
+                    setCreatingCatalogItem(false)
+                    setCatalogItemDraft(emptyCatalogItem)
+                  }
+                }}
+              >
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add Catalog item</DialogTitle>
+                    <DialogDescription>
+                      Add an item to the Campus Vault Catalog.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <CatalogItemForm
+                    draft={catalogItemDraft}
+                    onChange={setCatalogItemDraft}
+                    onSubmit={saveCatalogItem}
+                    error={createCatalogItem.error}
+                    submitting={createCatalogItem.isPending}
+                    submitLabel="Add item"
+                  />
+                </DialogContent>
+              </Dialog>
+              <Dialog
+                open={Boolean(catalogItemToDelete)}
+                onOpenChange={(open) => !open && setCatalogItemToDelete(null)}
+              >
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Delete Catalog item</DialogTitle>
+                    <DialogDescription>
+                      Delete {catalogItemToDelete?.name}? This cannot be undone.
+                    </DialogDescription>
+                  </DialogHeader>
+                  {deleteCatalogItem.error && (
+                    <ErrorText error={deleteCatalogItem.error} />
+                  )}
+                  <DialogFooter>
+                    <DialogClose asChild>
+                      <Button variant="outline" className="border-(--line)">
+                        Cancel
+                      </Button>
+                    </DialogClose>
+                    <Button
+                      variant="outline"
+                      className="border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
+                      onClick={() =>
+                        catalogItemToDelete &&
+                        deleteCatalogItem.mutate(catalogItemToDelete.id, {
+                          onSuccess: () => setCatalogItemToDelete(null),
+                        })
+                      }
+                      disabled={deleteCatalogItem.isPending}
+                    >
+                      {deleteCatalogItem.isPending
+                        ? 'Deleting…'
+                        : 'Delete item'}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           )}
         </section>
@@ -938,6 +1112,183 @@ function ErrorText({ error }: { error: unknown }) {
     </p>
   )
 }
+
+function CatalogItemForm({
+  itemId,
+  draft,
+  onChange,
+  onSubmit,
+  error,
+  submitting,
+  submitLabel,
+}: {
+  itemId?: string
+  draft: CatalogItemDraft
+  onChange: (draft: CatalogItemDraft) => void
+  onSubmit: () => void
+  error: unknown
+  submitting: boolean
+  submitLabel: string
+}) {
+  const imagesQuery = useItemImagesQuery(itemId)
+  const uploadImage = useUploadCatalogItemImageMutation()
+  const deleteImage = useDeleteCatalogItemImageMutation()
+
+  function uploadImages(files: FileList | null) {
+    if (!itemId || !files?.length) return
+
+    Array.from(files).forEach((image) => {
+      uploadImage.mutate({
+        itemId,
+        image,
+      })
+    })
+  }
+
+  return (
+    <form
+      className="space-y-4"
+      onSubmit={(event) => {
+        event.preventDefault()
+        onSubmit()
+      }}
+    >
+      <div>
+        <label htmlFor="catalog-item-name" className="text-sm font-semibold">
+          Name
+        </label>
+        <Input
+          id="catalog-item-name"
+          className="mt-2"
+          value={draft.name}
+          onChange={(event) => onChange({ ...draft, name: event.target.value })}
+          required
+        />
+      </div>
+      <div>
+        <label
+          htmlFor="catalog-item-description"
+          className="text-sm font-semibold"
+        >
+          Description <span className="font-normal">(optional)</span>
+        </label>
+        <Input
+          id="catalog-item-description"
+          className="mt-2"
+          value={draft.description ?? ''}
+          onChange={(event) =>
+            onChange({ ...draft, description: event.target.value })
+          }
+        />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="text-sm font-semibold">
+          Item type
+          <select
+            className="mt-2 h-10 w-full rounded-md border border-(--line) bg-white px-3 text-sm"
+            value={draft.type}
+            onChange={(event) =>
+              onChange({ ...draft, type: event.target.value as ItemType })
+            }
+          >
+            <option value="low">Take Item</option>
+            <option value="medium">Borrow Item</option>
+            <option value="high">Request Item</option>
+          </select>
+        </label>
+        <label htmlFor="catalog-item-stock" className="text-sm font-semibold">
+          Stock
+          <Input
+            id="catalog-item-stock"
+            className="mt-2"
+            type="number"
+            min="0"
+            value={draft.stock}
+            onFocus={(event) => event.target.select()}
+            onChange={(event) =>
+              onChange({
+                ...draft,
+                stock: Math.max(0, Number(event.target.value) || 0),
+              })
+            }
+            required
+          />
+        </label>
+      </div>
+      {itemId ? (
+        <div>
+          <label
+            htmlFor="catalog-item-images"
+            className="text-sm font-semibold"
+          >
+            Item images
+          </label>
+          <Input
+            id="catalog-item-images"
+            className="mt-2 cursor-pointer file:mr-3 file:cursor-pointer file:rounded-md file:bg-(--header-bg) file:px-3 file:font-semibold file:text-white file:transition-colors hover:file:bg-(--header-bg)/80"
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={(event) => {
+              uploadImages(event.target.files)
+              event.target.value = ''
+            }}
+            disabled={uploadImage.isPending}
+          />
+          <p className="mt-1 text-xs text-(--sea-ink-soft)">
+            Upload one or more images for this Catalog item.
+          </p>
+          {imagesQuery.data && imagesQuery.data.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {imagesQuery.data.map((image) => (
+                <div key={image.id} className="group/image space-y-1">
+                  <div className="relative">
+                    <img
+                      src={image.thumbnail_url}
+                      alt="Catalog item"
+                      className="size-16 rounded-lg border border-(--line) object-cover"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="absolute -right-2 -top-2 size-6 border-red-200 bg-white p-0 text-red-700 opacity-0 shadow-sm transition-opacity hover:bg-red-50 group-hover/image:opacity-100 group-focus-within/image:opacity-100"
+                      aria-label="Remove Catalog item image"
+                      onClick={() =>
+                        deleteImage.mutate({ itemId, imageId: image.id })
+                      }
+                      disabled={deleteImage.isPending}
+                    >
+                      <X aria-hidden="true" size={14} />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {uploadImage.error && <ErrorText error={uploadImage.error} />}
+          {deleteImage.error && <ErrorText error={deleteImage.error} />}
+        </div>
+      ) : (
+        <p className="text-sm text-(--sea-ink-soft)">
+          Save the item before uploading images.
+        </p>
+      )}
+      {error ? <ErrorText error={error} /> : null}
+      <DialogFooter>
+        <DialogClose asChild>
+          <Button variant="outline" className="border-(--line)">
+            Cancel
+          </Button>
+        </DialogClose>
+        <Button type="submit" className="btn-inv" disabled={submitting}>
+          {submitting ? 'Saving…' : submitLabel}
+        </Button>
+      </DialogFooter>
+    </form>
+  )
+}
+
 function GlobalMemberLists({
   members,
   loading,
@@ -978,6 +1329,21 @@ function GlobalMemberLists({
   const otherMembers = members.filter(
     (member) => !globalAdmins.some((admin) => admin.id === member.id),
   )
+  const membersByGroup = groups.map((group) => ({
+    group,
+    members: otherMembers.filter((member) =>
+      (assignments.get(member.id) ?? []).some(
+        (assignment) =>
+          assignment.scope === 'group' && assignment.scope_id === group.id,
+      ),
+    ),
+  }))
+  const assignedMemberIds = new Set(
+    membersByGroup.flatMap(({ members }) => members.map((member) => member.id)),
+  )
+  const unassignedMembers = otherMembers.filter(
+    (member) => !assignedMemberIds.has(member.id),
+  )
   return (
     <div className="space-y-7">
       <section>
@@ -993,17 +1359,35 @@ function GlobalMemberLists({
           onEdit={onEdit}
         />
       </section>
-      <section>
-        <h4 className="mb-3 text-sm font-semibold text-(--sea-ink)">Members</h4>
-        <MemberList
-          members={otherMembers}
-          loading={loading}
-          error={error}
-          currentMemberId={currentMemberId}
-          groupNamesByMember={groupNamesByMember}
-          onEdit={onEdit}
-        />
-      </section>
+      {membersByGroup.map(({ group, members: groupMembers }) => (
+        <section key={group.id}>
+          <h4 className="mb-3 text-sm font-semibold text-(--sea-ink)">
+            {group.name}
+          </h4>
+          <MemberList
+            members={groupMembers}
+            loading={loading}
+            error={error}
+            currentMemberId={currentMemberId}
+            onEdit={onEdit}
+            emptyMessage="Group has no members"
+          />
+        </section>
+      ))}
+      {unassignedMembers.length > 0 && (
+        <section>
+          <h4 className="mb-3 text-sm font-semibold text-(--sea-ink)">
+            Unassigned members
+          </h4>
+          <MemberList
+            members={unassignedMembers}
+            loading={loading}
+            error={error}
+            currentMemberId={currentMemberId}
+            onEdit={onEdit}
+          />
+        </section>
+      )}
     </div>
   )
 }
@@ -1013,18 +1397,24 @@ function MemberList({
   error,
   currentMemberId,
   groupNamesByMember,
+  canEdit,
   onEdit,
+  emptyMessage = 'No members found.',
 }: {
   members: Array<ManagedMember>
   loading: boolean
   error: unknown
   currentMemberId?: string
   groupNamesByMember?: Map<string, Array<string>>
+  canEdit?: (member: ManagedMember) => boolean
   onEdit: (member: ManagedMember) => void
+  emptyMessage?: string
 }) {
   if (loading)
     return <p className="text-sm text-(--sea-ink-soft)">Loading members…</p>
   if (error) return <ErrorText error={error} />
+  if (members.length === 0)
+    return <p className="text-sm text-(--sea-ink-soft)">{emptyMessage}</p>
   return (
     <ul className="divide-y divide-(--line) rounded-xl border border-(--line)">
       {members.map((member) => (
@@ -1051,7 +1441,7 @@ function MemberList({
             <Badge className="border-sky-200 bg-sky-50 text-sky-800">
               {label(member.role)}
             </Badge>
-            {member.id !== currentMemberId && (
+            {member.id !== currentMemberId && (canEdit?.(member) ?? true) && (
               <Button
                 type="button"
                 variant="outline"
@@ -1105,30 +1495,5 @@ function AdminTab({
     >
       {children}
     </button>
-  )
-}
-function GroupDetail({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: typeof Building2
-  label: string
-  value: string
-}) {
-  return (
-    <div className="flex gap-3 rounded-xl border border-(--line) bg-(--foam) p-4">
-      <Icon
-        aria-hidden="true"
-        className="mt-0.5 shrink-0 text-(--lagoon-deep)"
-        size={19}
-      />
-      <div>
-        <p className="text-xs font-semibold tracking-wide text-(--sea-ink-soft) uppercase">
-          {label}
-        </p>
-        <p className="mt-1 text-sm font-semibold text-(--sea-ink)">{value}</p>
-      </div>
-    </div>
   )
 }

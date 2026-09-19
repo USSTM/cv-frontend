@@ -2,7 +2,13 @@ import type { CurrentMember, MemberGroup } from '@/api/generated/types.gen'
 
 export type NavigationItem = {
   label: string
-  to: '/activity' | '/catalog' | '/cart' | '/approvals' | '/admin'
+  to:
+    | '/activity'
+    | '/catalog'
+    | '/cart'
+    | '/approvals'
+    | '/group-admin'
+    | '/global-admin'
 }
 
 const MEMBER_NAVIGATION: NavigationItem[] = [
@@ -25,12 +31,17 @@ export function canManageActiveGroup(
   )
 }
 
+export function isGroupAdminForActiveGroup(activeGroup: MemberGroup | null) {
+  return activeGroup?.roles.includes('group_admin') === true
+}
+
 export function roleLabelForMember(
   member: CurrentMember,
   activeGroup: MemberGroup | null,
 ): string {
   if (hasRole(member, 'global_admin')) return 'Global Admin'
   if (activeGroup?.roles.includes('group_admin')) return 'Group Admin'
+  if (hasRole(member, 'approver')) return 'Approver'
   return 'Member'
 }
 
@@ -40,12 +51,16 @@ export function navigationForMember(
 ): NavigationItem[] {
   const navigation = [...MEMBER_NAVIGATION]
 
-  if (hasRole(member, 'approver')) {
+  if (hasRole(member, 'approver') || hasRole(member, 'global_admin')) {
     navigation.push({ label: 'Approvals', to: '/approvals' })
   }
 
-  if (canManageActiveGroup(member, activeGroup)) {
-    navigation.push({ label: 'Admin', to: '/admin' })
+  if (activeGroup?.roles.includes('group_admin')) {
+    navigation.push({ label: 'Group Admin', to: '/group-admin' })
+  }
+
+  if (hasRole(member, 'global_admin')) {
+    navigation.push({ label: 'Global Admin', to: '/global-admin' })
   }
 
   return navigation

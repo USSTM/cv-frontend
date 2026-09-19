@@ -13,6 +13,8 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as InviteRouteImport } from './routes/invite'
+import { Route as GroupAdminRouteImport } from './routes/group-admin'
+import { Route as GlobalAdminRouteImport } from './routes/global-admin'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CatalogRouteImport } from './routes/catalog'
 import { Route as CartRouteImport } from './routes/cart'
@@ -42,6 +44,16 @@ const LoginRoute = LoginRouteImport.update({
 const InviteRoute = InviteRouteImport.update({
   id: '/invite',
   path: '/invite',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GroupAdminRoute = GroupAdminRouteImport.update({
+  id: '/group-admin',
+  path: '/group-admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GlobalAdminRoute = GlobalAdminRouteImport.update({
+  id: '/global-admin',
+  path: '/global-admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CheckoutRoute = CheckoutRouteImport.update({
@@ -103,6 +115,8 @@ export interface FileRoutesByFullPath {
   '/cart': typeof CartRoute
   '/catalog': typeof CatalogRouteWithChildren
   '/checkout': typeof CheckoutRoute
+  '/global-admin': typeof GlobalAdminRoute
+  '/group-admin': typeof GroupAdminRoute
   '/invite': typeof InviteRouteWithChildren
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
@@ -119,6 +133,8 @@ export interface FileRoutesByTo {
   '/cart': typeof CartRoute
   '/catalog': typeof CatalogRouteWithChildren
   '/checkout': typeof CheckoutRoute
+  '/global-admin': typeof GlobalAdminRoute
+  '/group-admin': typeof GroupAdminRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRoute
@@ -135,6 +151,8 @@ export interface FileRoutesById {
   '/cart': typeof CartRoute
   '/catalog': typeof CatalogRouteWithChildren
   '/checkout': typeof CheckoutRoute
+  '/global-admin': typeof GlobalAdminRoute
+  '/group-admin': typeof GroupAdminRoute
   '/invite': typeof InviteRouteWithChildren
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
@@ -153,6 +171,8 @@ export interface FileRouteTypes {
     | '/cart'
     | '/catalog'
     | '/checkout'
+    | '/global-admin'
+    | '/group-admin'
     | '/invite'
     | '/login'
     | '/notifications'
@@ -169,6 +189,8 @@ export interface FileRouteTypes {
     | '/cart'
     | '/catalog'
     | '/checkout'
+    | '/global-admin'
+    | '/group-admin'
     | '/login'
     | '/notifications'
     | '/settings'
@@ -184,6 +206,8 @@ export interface FileRouteTypes {
     | '/cart'
     | '/catalog'
     | '/checkout'
+    | '/global-admin'
+    | '/group-admin'
     | '/invite'
     | '/login'
     | '/notifications'
@@ -201,6 +225,8 @@ export interface RootRouteChildren {
   CartRoute: typeof CartRoute
   CatalogRoute: typeof CatalogRouteWithChildren
   CheckoutRoute: typeof CheckoutRoute
+  GlobalAdminRoute: typeof GlobalAdminRoute
+  GroupAdminRoute: typeof GroupAdminRoute
   InviteRoute: typeof InviteRouteWithChildren
   LoginRoute: typeof LoginRoute
   NotificationsRoute: typeof NotificationsRoute
@@ -235,6 +261,20 @@ declare module '@tanstack/react-router' {
       path: '/invite'
       fullPath: '/invite'
       preLoaderRoute: typeof InviteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/group-admin': {
+      id: '/group-admin'
+      path: '/group-admin'
+      fullPath: '/group-admin'
+      preLoaderRoute: typeof GroupAdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/global-admin': {
+      id: '/global-admin'
+      path: '/global-admin'
+      fullPath: '/global-admin'
+      preLoaderRoute: typeof GlobalAdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/checkout': {
@@ -342,6 +382,8 @@ const rootRouteChildren: RootRouteChildren = {
   CartRoute: CartRoute,
   CatalogRoute: CatalogRouteWithChildren,
   CheckoutRoute: CheckoutRoute,
+  GlobalAdminRoute: GlobalAdminRoute,
+  GroupAdminRoute: GroupAdminRoute,
   InviteRoute: InviteRouteWithChildren,
   LoginRoute: LoginRoute,
   NotificationsRoute: NotificationsRoute,

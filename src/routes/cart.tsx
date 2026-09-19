@@ -182,7 +182,7 @@ function CartPage() {
             </aside>
           </div>
         ) : (
-          <section className="island-shell mx-auto max-w-xl rounded-2xl px-6 py-12 text-center sm:px-10">
+          <section className="island-shell rounded-2xl px-6 py-12 text-center sm:px-10">
             <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-[rgba(79,184,178,0.14)] text-(--lagoon-deep)">
               <ShoppingCart aria-hidden="true" size={26} />
             </div>

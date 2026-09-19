@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import {
   Bell,
   CheckCircle2,
@@ -13,7 +13,10 @@ import { Button } from '@/components/ui/button'
 import { requireAuth } from '@/lib/route-guards'
 
 export const Route = createFileRoute('/settings')({
-  beforeLoad: requireAuth,
+  beforeLoad: async (context) => {
+    await requireAuth(context)
+    throw redirect({ to: '/activity' })
+  },
   component: SettingsPage,
 })
 

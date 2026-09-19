@@ -3,6 +3,7 @@ import type { CurrentMember, MemberGroup } from '@/api/generated/types.gen'
 import {
   activeGroupFor,
   canManageActiveGroup,
+  isGroupAdminForActiveGroup,
   navigationForMember,
   roleLabelForMember,
 } from './member-access'
@@ -32,7 +33,7 @@ describe('member access', () => {
       navigationForMember(memberWithRoles('group_admin'), groups[1]).map(
         (item) => item.label,
       ),
-    ).toContain('Admin')
+    ).toContain('Group Admin')
     expect(
       navigationForMember(memberWithRoles('group_admin'), groups[1]).map(
         (item) => item.label,
@@ -47,7 +48,12 @@ describe('member access', () => {
       navigationForMember(memberWithRoles('global_admin'), groups[0]).map(
         (item) => item.label,
       ),
-    ).toContain('Admin')
+    ).toContain('Global Admin')
+    expect(
+      navigationForMember(memberWithRoles('global_admin'), groups[0]).map(
+        (item) => item.label,
+      ),
+    ).toContain('Approvals')
   })
 
   it('labels the member role from their standing in the active group', () => {
@@ -59,6 +65,9 @@ describe('member access', () => {
     )
     expect(roleLabelForMember(memberWithRoles('global_admin'), groups[0])).toBe(
       'Global Admin',
+    )
+    expect(roleLabelForMember(memberWithRoles('approver'), groups[0])).toBe(
+      'Approver',
     )
     expect(roleLabelForMember(memberWithRoles('global_admin'), groups[1])).toBe(
       'Global Admin',
@@ -81,5 +90,7 @@ describe('member access', () => {
     expect(
       canManageActiveGroup(memberWithRoles('global_admin'), groups[0]),
     ).toBe(true)
+    expect(isGroupAdminForActiveGroup(groups[0])).toBe(false)
+    expect(isGroupAdminForActiveGroup(groups[1])).toBe(true)
   })
 })

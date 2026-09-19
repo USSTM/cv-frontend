@@ -2,6 +2,7 @@ import type {
   CartItemResponse,
   CheckoutCartResponse,
   ItemImage,
+  ItemPostRequest,
   ItemResponse,
   ItemType,
   PaginatedItemResponse,
@@ -34,6 +35,43 @@ export function getCatalogItem(itemId: string) {
 export function getItemImages(itemId: string) {
   return apiRequest<Array<ItemImage>>(
     `/items/${encodeURIComponent(itemId)}/images`,
+  )
+}
+
+export function createCatalogItem(input: ItemPostRequest) {
+  return apiRequest<ItemPostRequest>('/items', { method: 'POST', body: input })
+}
+
+export function updateCatalogItem(input: ItemPostRequest) {
+  return apiRequest<ItemResponse>(`/items/${encodeURIComponent(input.id)}`, {
+    method: 'PUT',
+    body: input,
+  })
+}
+
+export function deleteCatalogItem(itemId: string) {
+  return apiRequest<void>(`/items/${encodeURIComponent(itemId)}`, {
+    method: 'DELETE',
+  })
+}
+
+export function uploadCatalogItemImage(input: { itemId: string; image: File }) {
+  const body = new FormData()
+  body.append('image', input.image)
+
+  return apiRequest<ItemImage>(
+    `/items/${encodeURIComponent(input.itemId)}/images`,
+    { method: 'POST', body },
+  )
+}
+
+export function deleteCatalogItemImage(input: {
+  itemId: string
+  imageId: string
+}) {
+  return apiRequest<void>(
+    `/items/${encodeURIComponent(input.itemId)}/images/${encodeURIComponent(input.imageId)}`,
+    { method: 'DELETE' },
   )
 }
 
