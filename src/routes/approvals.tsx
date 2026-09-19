@@ -41,22 +41,7 @@ type ApprovalBody = {
   return_location: string
 }
 type View = 'pending' | 'all'
-type DisplayRequest = RequestItemResponse & {
-  sample?: boolean
-}
-
-const SAMPLE_REQUEST: DisplayRequest = {
-  id: 'frontend-sample-request',
-  user_id: 'sample-member',
-  group_id: 'sample-group',
-  item_id: 'sample-item',
-  quantity: 1,
-  status: 'pending',
-  item_name: 'DSLR Camera Kit',
-  requester_email: 'jordan.lee@example.com',
-  group_name: 'Student Media',
-  sample: true,
-}
+type DisplayRequest = RequestItemResponse
 
 function ApprovalsPage() {
   const pending = usePendingRequestsQuery()
@@ -69,10 +54,7 @@ function ApprovalsPage() {
   const [openId, setOpenId] = useState<string | null>(null)
   const [approvingId, setApprovingId] = useState<string | null>(null)
   const activeQuery = view === 'pending' ? pending : allRequests
-  const requests: DisplayRequest[] = [
-    ...(activeQuery.data?.data ?? []),
-    SAMPLE_REQUEST,
-  ]
+  const requests: DisplayRequest[] = activeQuery.data?.data ?? []
   const ownAvailability = useMemo(
     () =>
       availability.data?.filter((entry) => entry.user_id === member?.id) ?? [],
@@ -577,11 +559,6 @@ function RequestRow({
             {request.group_name ?? `Group ${request.group_id}`} · Qty.{' '}
             {request.quantity}
           </p>
-          {request.sample && (
-            <p className="mt-1 text-xs font-medium text-(--sea-ink-soft)">
-              Frontend-only sample
-            </p>
-          )}
         </div>
       </button>
       {open && (
@@ -601,11 +578,7 @@ function RequestRow({
                 </dd>
               </div>
             </dl>
-            {request.sample ? (
-              <p className="rounded-xl border border-(--line) bg-white p-4 text-sm text-(--sea-ink-soft)">
-                This is a frontend-only sample and cannot be approved or denied.
-              </p>
-            ) : !pending ? (
+            {!pending ? (
               <p className="rounded-xl border border-(--line) bg-white p-4 text-sm text-(--sea-ink-soft)">
                 This Request has already been {request.status}.
               </p>
