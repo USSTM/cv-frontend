@@ -19,11 +19,11 @@ export default function NotFoundPage() {
         </h1>
         <p className="mx-auto mt-4 max-w-lg text-base leading-7 text-(--sea-ink-soft)">
           The link may be out of date, or the page may have moved. Return to the
-          Catalog to keep exploring Campus Vault.
+          previous page to keep exploring Campus Vault.
         </p>
         <Link to="/catalog" className="btn-inv mt-8 gap-2">
           <ArrowLeft aria-hidden="true" size={17} />
-          Go to the Catalog
+          Go back
         </Link>
       </section>
     </main>
