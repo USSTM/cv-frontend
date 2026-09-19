@@ -29,6 +29,10 @@ export function getGroups() {
   return apiRequest<Array<Group>>('/groups')
 }
 
+export function getGroup(groupId: string) {
+  return apiRequest<Group>(`/groups/${encodeURIComponent(groupId)}`)
+}
+
 export function createGroup(input: GroupCreateRequest) {
   return apiRequest<Group>('/groups', { method: 'POST', body: input })
 }
