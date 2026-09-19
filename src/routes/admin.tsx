@@ -1204,6 +1204,7 @@ function CatalogItemForm({
             type="number"
             min="0"
             value={draft.stock}
+            onFocus={(event) => event.target.select()}
             onChange={(event) =>
               onChange({
                 ...draft,
@@ -1224,7 +1225,7 @@ function CatalogItemForm({
           </label>
           <Input
             id="catalog-item-images"
-            className="mt-2"
+            className="mt-2 cursor-pointer file:mr-3 file:cursor-pointer file:rounded-md file:bg-(--header-bg) file:px-3 file:font-semibold file:text-white file:transition-colors hover:file:bg-(--header-bg)/80"
             type="file"
             accept="image/*"
             multiple
