@@ -345,6 +345,7 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
                     setIsMember(true)
                     setEditing(member)
                   }}
+                  emptyMessage="Group has no members"
                 />
               )}
             </div>
@@ -1272,7 +1273,7 @@ function CatalogItemForm({
           Save the item before uploading images.
         </p>
       )}
-      {error && <ErrorText error={error} />}
+      {error ? <ErrorText error={error} /> : null}
       <DialogFooter>
         <DialogClose asChild>
           <Button variant="outline" className="border-(--line)">
@@ -1368,6 +1369,7 @@ function GlobalMemberLists({
             error={error}
             currentMemberId={currentMemberId}
             onEdit={onEdit}
+            emptyMessage="Group has no members"
           />
         </section>
       ))}
@@ -1396,6 +1398,7 @@ function MemberList({
   groupNamesByMember,
   canEdit,
   onEdit,
+  emptyMessage = 'No members found.',
 }: {
   members: Array<ManagedMember>
   loading: boolean
@@ -1404,10 +1407,13 @@ function MemberList({
   groupNamesByMember?: Map<string, Array<string>>
   canEdit?: (member: ManagedMember) => boolean
   onEdit: (member: ManagedMember) => void
+  emptyMessage?: string
 }) {
   if (loading)
     return <p className="text-sm text-(--sea-ink-soft)">Loading members…</p>
   if (error) return <ErrorText error={error} />
+  if (members.length === 0)
+    return <p className="text-sm text-(--sea-ink-soft)">{emptyMessage}</p>
   return (
     <ul className="divide-y divide-(--line) rounded-xl border border-(--line)">
       {members.map((member) => (
