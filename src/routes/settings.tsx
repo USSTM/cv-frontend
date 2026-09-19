@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 
+import { useCurrentMemberQuery } from '@/api/session-queries'
 import { Button } from '@/components/ui/button'
 import { requireAuth } from '@/lib/route-guards'
 
@@ -21,6 +22,7 @@ export const Route = createFileRoute('/settings')({
 })
 
 function SettingsPage() {
+  const { data: currentMember } = useCurrentMemberQuery()
   const [preferences, setPreferences] = useState({
     requestUpdates: true,
     bookingReminders: true,
@@ -65,8 +67,18 @@ function SettingsPage() {
                 </div>
               </div>
               <div className="grid gap-5 px-5 py-5 sm:grid-cols-2 sm:px-6">
-                <ProfileField label="Name" value="Arsal Abrar" />
-                <ProfileField label="Email" value="arsal.abrar@torontomu.ca" />
+                <ProfileField
+                  label="Name"
+                  value={
+                    currentMember
+                      ? displayNameFromEmail(currentMember.email)
+                      : 'Loading…'
+                  }
+                />
+                <ProfileField
+                  label="Email"
+                  value={currentMember?.email ?? 'Loading…'}
+                />
               </div>
             </section>
 
@@ -143,6 +155,17 @@ function SettingsPage() {
       </section>
     </main>
   )
+}
+
+function displayNameFromEmail(email: string) {
+  const localPart = email.split('@')[0]
+  if (!localPart) return 'Member'
+
+  return localPart
+    .split(/[._-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
 }
 
 function ProfileField({ label, value }: { label: string; value: string }) {
