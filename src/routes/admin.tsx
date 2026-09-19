@@ -678,7 +678,7 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
                 htmlFor="group-description"
                 className="text-sm font-semibold"
               >
-                Description <span className="font-normal">(optional)</span>
+                Expanded Name <span className="font-normal">(optional)</span>
               </label>
               <Input
                 id="group-description"
@@ -787,7 +787,7 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
                 htmlFor="edit-group-description"
                 className="text-sm font-semibold"
               >
-                Description <span className="font-normal">(optional)</span>
+                Expanded Name <span className="font-normal">(optional)</span>
               </label>
               <Input
                 id="edit-group-description"
