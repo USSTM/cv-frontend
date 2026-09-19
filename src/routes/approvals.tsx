@@ -661,6 +661,11 @@ function ApprovalForm({
   onCancel: () => void
 }) {
   const [availabilityId, setAvailabilityId] = useState('')
+  const today = useMemo(() => dateValue(new Date()), [])
+  const upcomingAvailability = useMemo(
+    () => availability.filter((slot) => slot.date >= today),
+    [availability, today],
+  )
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -693,7 +698,7 @@ function ApprovalForm({
             className="mt-1 w-full rounded-lg border border-(--line) bg-white px-3 py-2"
           >
             <option value="">Select a collection window</option>
-            {availability.map((slot) => (
+            {upcomingAvailability.map((slot) => (
               <option key={slot.id} value={slot.id}>
                 {slot.date} · {slot.start_time}–{slot.end_time}
               </option>
