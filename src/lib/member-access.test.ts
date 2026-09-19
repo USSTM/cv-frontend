@@ -49,6 +49,11 @@ describe('member access', () => {
         (item) => item.label,
       ),
     ).toContain('Global Admin')
+    expect(
+      navigationForMember(memberWithRoles('global_admin'), groups[0]).map(
+        (item) => item.label,
+      ),
+    ).toContain('Approvals')
   })
 
   it('labels the member role from their standing in the active group', () => {

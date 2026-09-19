@@ -33,7 +33,10 @@ export async function requireApprover({
   const member = context.queryClient.getQueryData<CurrentMember>(
     currentMemberQueryKey,
   )
-  if (!member || !hasRole(member, 'approver'))
+  if (
+    !member ||
+    (!hasRole(member, 'approver') && !hasRole(member, 'global_admin'))
+  )
     throw redirect({ to: '/activity' })
 }
 

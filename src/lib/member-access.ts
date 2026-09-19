@@ -50,7 +50,7 @@ export function navigationForMember(
 ): NavigationItem[] {
   const navigation = [...MEMBER_NAVIGATION]
 
-  if (hasRole(member, 'approver')) {
+  if (hasRole(member, 'approver') || hasRole(member, 'global_admin')) {
     navigation.push({ label: 'Approvals', to: '/approvals' })
   }
 
