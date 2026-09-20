@@ -275,6 +275,7 @@ export type CheckoutCartRequest = {
    * Member's preferred collection window for HIGH items.
    */
   preferredAvailabilityId?: Uuid
+  requestedReturnAt?: string
 }
 
 export type CheckoutCartResponse = {
@@ -424,6 +425,7 @@ export type RequestItemRequest = {
    * Member's preferred collection window for this Request.
    */
   preferred_availability_id?: Uuid
+  requested_return_at?: string
 }
 
 export type RequestItemResponse = {
@@ -439,6 +441,7 @@ export type RequestItemResponse = {
    * The collection window requested by the Member.
    */
   preferred_availability_id?: Uuid
+  requested_return_at?: string
   /**
    * Item name, included in approval request lists
    */

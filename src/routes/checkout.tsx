@@ -24,6 +24,7 @@ import { uploadPreCheckoutConditionImage } from '@/api/catalog'
 import { ApiError } from '@/api/client'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -72,6 +73,7 @@ function CheckoutPage() {
   const [condition, setCondition] = useState<Condition>('good')
   const [conditionPhoto, setConditionPhoto] = useState<File | null>(null)
   const [preferredAvailabilityId, setPreferredAvailabilityId] = useState('')
+  const [requestedReturnAt, setRequestedReturnAt] = useState('')
   const [result, setResult] = useState<CheckoutCartResponse | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
@@ -103,7 +105,7 @@ function CheckoutPage() {
     !isUploadingPhoto &&
     !checkout.isPending &&
     (!hasBorrowing || Boolean(dueDate && conditionPhoto)) &&
-    (!hasRequest || Boolean(preferredAvailabilityId))
+    (!hasRequest || Boolean(preferredAvailabilityId && requestedReturnAt))
 
   async function handleSubmit() {
     if (!activeGroup) return
@@ -132,6 +134,9 @@ function CheckoutPage() {
         beforeCondition: condition,
         beforeConditionUrl,
         preferredAvailabilityId: preferredAvailabilityId || undefined,
+        requestedReturnAt: requestedReturnAt
+          ? new Date(requestedReturnAt).toISOString()
+          : undefined,
       })
       setResult(checkoutResult)
     } catch (error) {
@@ -252,10 +257,12 @@ function CheckoutPage() {
                   {section.type === 'high' && (
                     <RequestedCollectionTime
                       selectedAvailabilityId={preferredAvailabilityId}
+                      requestedReturnAt={requestedReturnAt}
                       availability={upcomingAvailability}
                       isLoading={availability.isLoading}
                       isError={availability.isError}
                       onSelect={setPreferredAvailabilityId}
+                      onRequestedReturnAtChange={setRequestedReturnAt}
                     />
                   )}
                 </section>
@@ -329,6 +336,11 @@ function CheckoutPage() {
             {hasRequest && !preferredAvailabilityId && (
               <p className="mt-3 text-center text-xs leading-5 text-(--sea-ink-soft)">
                 Choose a preferred collection time to submit your Request.
+              </p>
+            )}
+            {hasRequest && !requestedReturnAt && (
+              <p className="mt-3 text-center text-xs leading-5 text-(--sea-ink-soft)">
+                Choose when you will return your Request Item.
               </p>
             )}
           </aside>
@@ -429,12 +441,15 @@ function BorrowingDetails({
 
 function RequestedCollectionTime({
   selectedAvailabilityId,
+  requestedReturnAt,
   availability,
   isLoading,
   isError,
   onSelect,
+  onRequestedReturnAtChange,
 }: {
   selectedAvailabilityId: string
+  requestedReturnAt: string
   availability: Array<{
     id: string
     date: string
@@ -445,6 +460,7 @@ function RequestedCollectionTime({
   isLoading: boolean
   isError: boolean
   onSelect: (id: string) => void
+  onRequestedReturnAtChange: (value: string) => void
 }) {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()))
   const days = useMemo(
@@ -474,6 +490,22 @@ function RequestedCollectionTime({
             Choose an upcoming collection window that works for you. An Approver
             will review your Request before confirming the Booking.
           </p>
+          <label className="mt-4 block max-w-sm text-sm font-semibold">
+            Return by
+            <Input
+              type="datetime-local"
+              required
+              value={requestedReturnAt}
+              min={new Date().toISOString().slice(0, 16)}
+              onChange={(event) =>
+                onRequestedReturnAtChange(event.target.value)
+              }
+              className="mt-2 h-11 bg-white text-(--sea-ink) [color-scheme:light]"
+            />
+            <span className="mt-1 block text-xs font-normal text-(--sea-ink-soft)">
+              Tell the Approver when you plan to bring the item back.
+            </span>
+          </label>
           {isLoading ? (
             <p className="mt-4 text-sm text-(--sea-ink-soft)">
               Loading collection windows…

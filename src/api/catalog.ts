@@ -130,6 +130,7 @@ export function checkoutCart(input: {
   beforeCondition: 'unusable' | 'damaged' | 'decent' | 'good' | 'pristine'
   beforeConditionUrl: string
   preferredAvailabilityId?: string
+  requestedReturnAt?: string
 }) {
   return apiRequest<CheckoutCartResponse>('/checkout', {
     method: 'POST',
