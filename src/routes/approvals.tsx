@@ -157,6 +157,9 @@ function ApprovalsPage() {
                   approving={view === 'pending' && approvingId === request.id}
                   pending={request.status === 'pending'}
                   availability={ownAvailability}
+                  preferredAvailability={availability.data?.find(
+                    (slot) => slot.id === request.preferred_availability_id,
+                  )}
                   isSubmitting={review.isPending}
                   error={review.error?.message}
                   onToggle={() =>
@@ -527,6 +530,7 @@ function RequestRow({
   approving,
   pending,
   availability,
+  preferredAvailability,
   isSubmitting,
   error,
   onToggle,
@@ -545,6 +549,11 @@ function RequestRow({
     start_time: string
     end_time: string
   }>
+  preferredAvailability?: {
+    date: string
+    start_time: string
+    end_time: string
+  }
   isSubmitting: boolean
   error?: string
   onToggle: () => void
@@ -596,6 +605,16 @@ function RequestRow({
                   {request.group_name ?? request.group_id}
                 </dd>
               </div>
+              {preferredAvailability && (
+                <div>
+                  <dt className="font-semibold">Preferred collection time</dt>
+                  <dd className="mt-1 text-(--sea-ink-soft)">
+                    {formatAvailabilityDate(preferredAvailability.date)} ·{' '}
+                    {formatAvailabilityTime(preferredAvailability.start_time)}–
+                    {formatAvailabilityTime(preferredAvailability.end_time)}
+                  </dd>
+                </div>
+              )}
             </dl>
             {!pending ? (
               <p className="rounded-xl border border-(--line) bg-white p-4 text-sm text-(--sea-ink-soft)">

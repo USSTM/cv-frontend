@@ -129,6 +129,7 @@ export function checkoutCart(input: {
   dueDate: string
   beforeCondition: 'unusable' | 'damaged' | 'decent' | 'good' | 'pristine'
   beforeConditionUrl: string
+  preferredAvailabilityId?: string
 }) {
   return apiRequest<CheckoutCartResponse>('/checkout', {
     method: 'POST',

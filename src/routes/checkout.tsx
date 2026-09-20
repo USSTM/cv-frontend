@@ -5,6 +5,9 @@ import {
   Camera,
   CheckCircle2,
   ClipboardCheck,
+  Clock3,
+  ChevronLeft,
+  ChevronRight,
   PackageCheck,
   Send,
   ShieldCheck,
@@ -12,6 +15,7 @@ import {
 import { useMemo, useState } from 'react'
 
 import { useCartQuery, useCheckoutCartMutation } from '@/api/catalog-queries'
+import { useAvailabilityQuery } from '@/api/availability-queries'
 import {
   type CheckoutCartResponse,
   type ItemType,
@@ -20,7 +24,6 @@ import { uploadPreCheckoutConditionImage } from '@/api/catalog'
 import { ApiError } from '@/api/client'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -68,6 +71,7 @@ function CheckoutPage() {
   const [dueDate, setDueDate] = useState('')
   const [condition, setCondition] = useState<Condition>('good')
   const [conditionPhoto, setConditionPhoto] = useState<File | null>(null)
+  const [preferredAvailabilityId, setPreferredAvailabilityId] = useState('')
   const [result, setResult] = useState<CheckoutCartResponse | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
@@ -82,12 +86,24 @@ function CheckoutPage() {
   const hasBorrowing = groupedCart.some(
     (section) => section.type === 'medium' && section.items.length > 0,
   )
+  const hasRequest = groupedCart.some(
+    (section) => section.type === 'high' && section.items.length > 0,
+  )
+  const availability = useAvailabilityQuery()
+  const upcomingAvailability = useMemo(
+    () =>
+      (availability.data ?? []).filter(
+        (slot) => slot.date.slice(0, 10) > todayDateValue(),
+      ),
+    [availability.data],
+  )
   const itemCount = cart.reduce((total, item) => total + item.quantity, 0)
   const canSubmit =
     Boolean(activeGroup) &&
     !isUploadingPhoto &&
     !checkout.isPending &&
-    (!hasBorrowing || Boolean(dueDate && conditionPhoto))
+    (!hasBorrowing || Boolean(dueDate && conditionPhoto)) &&
+    (!hasRequest || Boolean(preferredAvailabilityId))
 
   async function handleSubmit() {
     if (!activeGroup) return
@@ -115,6 +131,7 @@ function CheckoutPage() {
           : new Date().toISOString(),
         beforeCondition: condition,
         beforeConditionUrl,
+        preferredAvailabilityId: preferredAvailabilityId || undefined,
       })
       setResult(checkoutResult)
     } catch (error) {
@@ -232,6 +249,15 @@ function CheckoutPage() {
                       onPhotoChange={setConditionPhoto}
                     />
                   )}
+                  {section.type === 'high' && (
+                    <RequestedCollectionTime
+                      selectedAvailabilityId={preferredAvailabilityId}
+                      availability={upcomingAvailability}
+                      isLoading={availability.isLoading}
+                      isError={availability.isError}
+                      onSelect={setPreferredAvailabilityId}
+                    />
+                  )}
                 </section>
               ))}
           </div>
@@ -298,6 +324,11 @@ function CheckoutPage() {
             {hasBorrowing && !conditionPhoto && (
               <p className="mt-3 text-center text-xs leading-5 text-(--sea-ink-soft)">
                 Attach a condition photo to submit.
+              </p>
+            )}
+            {hasRequest && !preferredAvailabilityId && (
+              <p className="mt-3 text-center text-xs leading-5 text-(--sea-ink-soft)">
+                Choose a preferred collection time to submit your Request.
               </p>
             )}
           </aside>
@@ -394,6 +425,224 @@ function BorrowingDetails({
       </div>
     </div>
   )
+}
+
+function RequestedCollectionTime({
+  selectedAvailabilityId,
+  availability,
+  isLoading,
+  isError,
+  onSelect,
+}: {
+  selectedAvailabilityId: string
+  availability: Array<{
+    id: string
+    date: string
+    start_time: string
+    end_time: string
+    user_email: string
+  }>
+  isLoading: boolean
+  isError: boolean
+  onSelect: (id: string) => void
+}) {
+  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()))
+  const days = useMemo(
+    () => Array.from({ length: 7 }, (_, index) => addDays(weekStart, index)),
+    [weekStart],
+  )
+  const windowsByDate = useMemo(() => {
+    const grouped = new Map<string, typeof availability>()
+    for (const slot of availability) {
+      const date = slot.date.slice(0, 10)
+      grouped.set(date, [...(grouped.get(date) ?? []), slot])
+    }
+    return [...grouped.entries()]
+  }, [availability])
+
+  return (
+    <div className="border-t border-(--line) bg-(--foam) px-5 py-5 sm:px-6">
+      <div className="flex gap-3">
+        <Clock3
+          aria-hidden="true"
+          className="mt-0.5 shrink-0 text-(--lagoon-deep)"
+          size={20}
+        />
+        <div className="min-w-0 flex-1">
+          <h3 className="font-semibold">Preferred collection time</h3>
+          <p className="mt-1 text-sm leading-6 text-(--sea-ink-soft)">
+            Choose an upcoming collection window that works for you. An Approver
+            will review your Request before confirming the Booking.
+          </p>
+          {isLoading ? (
+            <p className="mt-4 text-sm text-(--sea-ink-soft)">
+              Loading collection windows…
+            </p>
+          ) : isError ? (
+            <p role="alert" className="mt-4 text-sm text-red-700">
+              Collection windows could not be loaded. Please try again.
+            </p>
+          ) : availability.length ? (
+            <>
+              <div className="mt-5 max-w-lg rounded-xl border border-(--line) bg-white p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    className="inline-flex size-8 items-center justify-center rounded-lg border border-(--line) hover:bg-(--foam)"
+                    onClick={() =>
+                      setWeekStart((current) => addDays(current, -7))
+                    }
+                    aria-label="Previous week"
+                  >
+                    <ChevronLeft aria-hidden="true" size={17} />
+                  </button>
+                  <p className="text-sm font-semibold">
+                    {formatWeekRange(days[0]!, days[6]!)}
+                  </p>
+                  <button
+                    type="button"
+                    className="inline-flex size-8 items-center justify-center rounded-lg border border-(--line) hover:bg-(--foam)"
+                    onClick={() =>
+                      setWeekStart((current) => addDays(current, 7))
+                    }
+                    aria-label="Next week"
+                  >
+                    <ChevronRight aria-hidden="true" size={17} />
+                  </button>
+                </div>
+                <div className="mt-3 grid grid-cols-7 gap-1">
+                  {days.map((day) => {
+                    const value = dateValue(day)
+                    const windowCount = availability.filter(
+                      (slot) => slot.date.slice(0, 10) === value,
+                    ).length
+                    return (
+                      <div
+                        key={value}
+                        className="flex min-h-14 flex-col items-center justify-center rounded-lg bg-(--foam) text-xs font-semibold text-(--sea-ink)"
+                        aria-label={`${formatCollectionDate(value)}: ${windowCount} collection windows`}
+                      >
+                        <span className="text-[10px] uppercase text-(--sea-ink-soft)">
+                          {new Intl.DateTimeFormat('en-US', {
+                            weekday: 'short',
+                          }).format(day)}
+                        </span>
+                        <span className="mt-1 text-sm">{day.getDate()}</span>
+                        {windowCount > 0 && (
+                          <span
+                            className="mt-1 flex gap-0.5"
+                            aria-hidden="true"
+                          >
+                            {Array.from({
+                              length: Math.min(windowCount, 3),
+                            }).map((_, index) => (
+                              <span
+                                key={index}
+                                className="size-1.5 rounded-full bg-(--lagoon-deep)"
+                              />
+                            ))}
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+                <p className="mt-3 flex items-center gap-2 text-xs text-(--sea-ink-soft)">
+                  <span className="size-1.5 rounded-full bg-(--lagoon-deep)" />A
+                  dot marks a date with available collection windows.
+                </p>
+              </div>
+              <div className="mt-5 space-y-5">
+                <p className="text-sm font-semibold">All upcoming windows</p>
+                {windowsByDate.map(([date, slots]) => (
+                  <section key={date}>
+                    <h4 className="text-sm font-semibold text-(--sea-ink-soft)">
+                      {formatCollectionDate(date)}
+                    </h4>
+                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                      {slots.map((slot) => {
+                        const selected = selectedAvailabilityId === slot.id
+                        return (
+                          <button
+                            key={slot.id}
+                            type="button"
+                            aria-pressed={selected}
+                            onClick={() => onSelect(slot.id)}
+                            className={`rounded-xl border px-4 py-3 text-left text-sm shadow-sm transition-all hover:-translate-y-0.5 ${selected ? 'border-(--lagoon-deep) bg-(--header-bg) text-white shadow-md' : 'border-(--line) bg-white hover:border-(--lagoon-deep) hover:bg-(--sand)'}`}
+                          >
+                            <span className="block font-semibold">
+                              {formatCollectionTime(slot.start_time)}–
+                              {formatCollectionTime(slot.end_time)}
+                            </span>
+                            <span
+                              className={`mt-1 block text-xs ${selected ? 'text-white/80' : 'text-(--sea-ink-soft)'}`}
+                            >
+                              {slot.user_email}
+                            </span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="mt-4 text-sm text-(--sea-ink-soft)">
+              No upcoming collection windows are available yet. Please check
+              back after an Approver adds availability.
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function formatCollectionTime(value: string) {
+  return new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(`1970-01-01T${value}`))
+}
+
+function todayDateValue() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
+function dateValue(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+function startOfWeek(date: Date) {
+  const result = new Date(date)
+  result.setHours(0, 0, 0, 0)
+  result.setDate(result.getDate() - result.getDay())
+  return result
+}
+
+function addDays(date: Date, count: number) {
+  const result = new Date(date)
+  result.setDate(result.getDate() + count)
+  return result
+}
+
+function formatCollectionDate(value: string) {
+  return new Intl.DateTimeFormat('en-US', {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date(`${value}T12:00:00`))
+}
+
+function formatWeekRange(start: Date, end: Date) {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+  })
+  return `${formatter.format(start)}–${new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(end)}`
 }
 
 function Confirmation({
