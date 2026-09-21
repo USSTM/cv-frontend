@@ -9,6 +9,10 @@ export function useCurrentMemberQuery() {
   return useQuery({
     queryKey: currentMemberQueryKey,
     queryFn: getCurrentMember,
+    // Authentication cookies belong to the API host, so the frontend SSR
+    // process never receives them on a browser refresh. Resolve the session
+    // after hydration, where credentialed requests include those cookies.
+    enabled: typeof window !== 'undefined',
     retry: (failureCount, error) =>
       !(error instanceof ApiError && error.status === 401) && failureCount < 2,
   })
