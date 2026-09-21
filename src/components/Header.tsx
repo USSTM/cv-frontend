@@ -84,8 +84,7 @@ export default function Header() {
     <header className="sticky top-0 z-50 w-full bg-(--header-bg) text-white shadow-md">
       <nav className="mx-auto flex h-16 w-full max-w-[1440px] items-center justify-between px-0 sm:px-2 lg:px-4">
         <div className="flex items-center gap-4">
-          <Link
-            to="/"
+          <span
             className="flex items-center gap-3 text-2xl font-bold text-white no-underline transition-colors duration-300 hover:text-white"
           >
             <img
@@ -94,7 +93,7 @@ export default function Header() {
               className="h-10 w-auto shrink-0"
             />
             USSTM Campus Vault
-          </Link>
+          </span>
           {currentMember && (
             <div className="hidden h-10 border-l border-white/30 md:block" />
           )}
