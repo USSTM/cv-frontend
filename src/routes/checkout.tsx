@@ -463,6 +463,7 @@ function RequestedCollectionTime({
   onRequestedReturnAtChange: (value: string) => void
 }) {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()))
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const days = useMemo(
     () => Array.from({ length: 7 }, (_, index) => addDays(weekStart, index)),
     [weekStart],
@@ -475,6 +476,18 @@ function RequestedCollectionTime({
     }
     return [...grouped.entries()]
   }, [availability])
+  const selectedSlots = selectedDate
+    ? (windowsByDate.find(([date]) => date === selectedDate)?.[1] ?? [])
+    : []
+
+  function selectDate(date: string) {
+    setSelectedDate(date)
+
+    const selectedSlot = availability.find(
+      (slot) => slot.id === selectedAvailabilityId,
+    )
+    if (selectedSlot?.date.slice(0, 10) !== date) onSelect('')
+  }
 
   return (
     <div className="border-t border-(--line) bg-(--foam) px-5 py-5 sm:px-6">
@@ -549,12 +562,18 @@ function RequestedCollectionTime({
                       (slot) => slot.date.slice(0, 10) === value,
                     ).length
                     return (
-                      <div
+                      <button
                         key={value}
-                        className="flex min-h-14 flex-col items-center justify-center rounded-lg bg-(--foam) text-xs font-semibold text-(--sea-ink)"
+                        type="button"
+                        disabled={windowCount === 0}
+                        aria-pressed={selectedDate === value}
+                        onClick={() => selectDate(value)}
+                        className={`flex min-h-14 flex-col items-center justify-center rounded-lg text-xs font-semibold transition-colors ${selectedDate === value ? 'bg-(--header-bg) text-white shadow-sm' : windowCount > 0 ? 'bg-(--foam) text-(--sea-ink) hover:bg-(--sand)' : 'bg-(--foam) text-(--sea-ink-soft)/60'}`}
                         aria-label={`${formatCollectionDate(value)}: ${windowCount} collection windows`}
                       >
-                        <span className="text-[10px] uppercase text-(--sea-ink-soft)">
+                        <span
+                          className={`text-[10px] uppercase ${selectedDate === value ? 'text-white/75' : 'text-(--sea-ink-soft)'}`}
+                        >
                           {new Intl.DateTimeFormat('en-US', {
                             weekday: 'short',
                           }).format(day)}
@@ -575,7 +594,7 @@ function RequestedCollectionTime({
                             ))}
                           </span>
                         )}
-                      </div>
+                      </button>
                     )
                   })}
                 </div>
@@ -585,14 +604,14 @@ function RequestedCollectionTime({
                 </p>
               </div>
               <div className="mt-5 space-y-5">
-                <p className="text-sm font-semibold">All upcoming windows</p>
-                {windowsByDate.map(([date, slots]) => (
-                  <section key={date}>
+                {selectedDate ? (
+                  <section>
                     <h4 className="text-sm font-semibold text-(--sea-ink-soft)">
-                      {formatCollectionDate(date)}
+                      Collection windows for{' '}
+                      {formatCollectionDate(selectedDate)}
                     </h4>
                     <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                      {slots.map((slot) => {
+                      {selectedSlots.map((slot) => {
                         const selected = selectedAvailabilityId === slot.id
                         return (
                           <button
@@ -616,7 +635,11 @@ function RequestedCollectionTime({
                       })}
                     </div>
                   </section>
-                ))}
+                ) : (
+                  <p className="text-sm text-(--sea-ink-soft)">
+                    Select a date with a dot to see its collection windows.
+                  </p>
+                )}
               </div>
             </>
           ) : (
