@@ -493,6 +493,17 @@ function RequestedCollectionTime({
     [windowsByDate, selectedDate],
   )
 
+  function selectDate(date: string) {
+    setSelectedDate(date)
+
+    // Clear a previously chosen slot if it doesn't belong to the newly
+    // selected date, so the form can't submit a stale collection window.
+    const selectedSlot = availability.find(
+      (slot) => slot.id === selectedAvailabilityId,
+    )
+    if (selectedSlot?.date.slice(0, 10) !== date) onSelect('')
+  }
+
   return (
     <div className="divide-y divide-(--line) border-t border-(--line) bg-(--foam)">
       <div className="flex gap-3 px-5 py-5 sm:px-6">
@@ -582,7 +593,7 @@ function RequestedCollectionTime({
                         type="button"
                         disabled={!hasWindows}
                         aria-pressed={selected}
-                        onClick={() => setSelectedDate(value)}
+                        onClick={() => selectDate(value)}
                         aria-label={`${formatCollectionDate(value)}: ${windowCount} collection windows`}
                         className={`flex min-h-14 flex-col items-center justify-center rounded-lg text-xs font-semibold ${selected ? 'bg-(--lagoon-deep) text-white' : hasWindows ? 'bg-(--foam) text-(--sea-ink) hover:bg-[rgba(79,184,178,0.16)]' : 'bg-(--foam) text-(--sea-ink-soft) opacity-40'}`}
                       >
@@ -618,36 +629,43 @@ function RequestedCollectionTime({
                   Select a highlighted date to see its collection windows.
                 </p>
               </div>
-              <div className="mt-5">
-                <p className="text-sm font-semibold">
-                  {selectedDate
-                    ? formatCollectionDate(selectedDate)
-                    : 'Select a date'}
-                </p>
-                <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                  {selectedWindows.map((slot) => {
-                    const selected = selectedAvailabilityId === slot.id
-                    return (
-                      <button
-                        key={slot.id}
-                        type="button"
-                        aria-pressed={selected}
-                        onClick={() => onSelect(slot.id)}
-                        className={`rounded-xl border px-4 py-3 text-left text-sm shadow-sm transition-all hover:-translate-y-0.5 ${selected ? 'border-(--lagoon-deep) bg-(--header-bg) text-white shadow-md' : 'border-(--line) bg-white hover:border-(--lagoon-deep) hover:bg-(--sand)'}`}
-                      >
-                        <span className="block font-semibold">
-                          {formatCollectionTime(slot.start_time)}–
-                          {formatCollectionTime(slot.end_time)}
-                        </span>
-                        <span
-                          className={`mt-1 block text-xs ${selected ? 'text-white/80' : 'text-(--sea-ink-soft)'}`}
-                        >
-                          {slot.user_email}
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
+              <div className="mt-5 space-y-5">
+                {selectedDate ? (
+                  <section>
+                    <h4 className="text-sm font-semibold text-(--sea-ink-soft)">
+                      Collection windows for{' '}
+                      {formatCollectionDate(selectedDate)}
+                    </h4>
+                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                      {selectedWindows.map((slot) => {
+                        const selected = selectedAvailabilityId === slot.id
+                        return (
+                          <button
+                            key={slot.id}
+                            type="button"
+                            aria-pressed={selected}
+                            onClick={() => onSelect(slot.id)}
+                            className={`rounded-xl border px-4 py-3 text-left text-sm shadow-sm transition-all hover:-translate-y-0.5 ${selected ? 'border-(--lagoon-deep) bg-(--header-bg) text-white shadow-md' : 'border-(--line) bg-white hover:border-(--lagoon-deep) hover:bg-(--sand)'}`}
+                          >
+                            <span className="block font-semibold">
+                              {formatCollectionTime(slot.start_time)}–
+                              {formatCollectionTime(slot.end_time)}
+                            </span>
+                            <span
+                              className={`mt-1 block text-xs ${selected ? 'text-white/80' : 'text-(--sea-ink-soft)'}`}
+                            >
+                              {slot.user_email}
+                            </span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </section>
+                ) : (
+                  <p className="text-sm text-(--sea-ink-soft)">
+                    Select a date with a dot to see its collection windows.
+                  </p>
+                )}
               </div>
             </>
           ) : (
