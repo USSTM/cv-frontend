@@ -9,10 +9,11 @@ import {
   ChevronLeft,
   ChevronRight,
   PackageCheck,
+  RotateCcw,
   Send,
   ShieldCheck,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { useCartQuery, useCheckoutCartMutation } from '@/api/catalog-queries'
 import { useAvailabilityQuery } from '@/api/availability-queries'
@@ -463,6 +464,7 @@ function RequestedCollectionTime({
   onRequestedReturnAtChange: (value: string) => void
 }) {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()))
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const days = useMemo(
     () => Array.from({ length: 7 }, (_, index) => addDays(weekStart, index)),
     [weekStart],
@@ -473,25 +475,39 @@ function RequestedCollectionTime({
       const date = slot.date.slice(0, 10)
       grouped.set(date, [...(grouped.get(date) ?? []), slot])
     }
-    return [...grouped.entries()]
+    return [...grouped.entries()].sort(([a], [b]) => a.localeCompare(b))
   }, [availability])
+  const nextAvailableDate =
+    windowsByDate.length > 0 ? windowsByDate[0][0] : null
+
+  // Default to the next available day once the availability has loaded, and
+  // scroll the week strip to it so it's visible without navigating.
+  useEffect(() => {
+    if (selectedDate !== null || nextAvailableDate === null) return
+    setSelectedDate(nextAvailableDate)
+    setWeekStart(startOfWeek(new Date(`${nextAvailableDate}T00:00:00`)))
+  }, [nextAvailableDate, selectedDate])
+
+  const selectedWindows = useMemo(
+    () => windowsByDate.find(([date]) => date === selectedDate)?.[1] ?? [],
+    [windowsByDate, selectedDate],
+  )
 
   return (
-    <div className="border-t border-(--line) bg-(--foam) px-5 py-5 sm:px-6">
-      <div className="flex gap-3">
-        <Clock3
+    <div className="divide-y divide-(--line) border-t border-(--line) bg-(--foam)">
+      <div className="flex gap-3 px-5 py-5 sm:px-6">
+        <RotateCcw
           aria-hidden="true"
           className="mt-0.5 shrink-0 text-(--lagoon-deep)"
           size={20}
         />
         <div className="min-w-0 flex-1">
-          <h3 className="font-semibold">Preferred collection time</h3>
-          <p className="mt-1 text-sm leading-6 text-(--sea-ink-soft)">
-            Choose an upcoming collection window that works for you. An Approver
-            will review your Request before confirming the Booking.
+          <h3 className="font-semibold">Return by</h3>
+          <p className="mt-1 text-xs leading-5 text-(--sea-ink-soft)">
+            Tell the Approver when you plan to bring the item back.
           </p>
-          <label className="mt-4 block max-w-sm text-sm font-semibold">
-            Return by
+          <label className="mt-3 block max-w-sm text-sm font-semibold">
+            <span className="sr-only">Return by date and time</span>
             <Input
               type="datetime-local"
               required
@@ -502,10 +518,20 @@ function RequestedCollectionTime({
               }
               className="mt-2 h-11 bg-white text-(--sea-ink) [color-scheme:light]"
             />
-            <span className="mt-1 block text-xs font-normal text-(--sea-ink-soft)">
-              Tell the Approver when you plan to bring the item back.
-            </span>
           </label>
+        </div>
+      </div>
+      <div className="flex gap-3 px-5 py-5 sm:px-6">
+        <Clock3
+          aria-hidden="true"
+          className="mt-0.5 shrink-0 text-(--lagoon-deep)"
+          size={20}
+        />
+        <div className="min-w-0 flex-1">
+          <h3 className="font-semibold">Collection window</h3>
+          <p className="mt-1 text-xs leading-5 text-(--sea-ink-soft)">
+            Tell the Approver when you would like to collect the item.
+          </p>
           {isLoading ? (
             <p className="mt-4 text-sm text-(--sea-ink-soft)">
               Loading collection windows…
@@ -548,19 +574,27 @@ function RequestedCollectionTime({
                     const windowCount = availability.filter(
                       (slot) => slot.date.slice(0, 10) === value,
                     ).length
+                    const hasWindows = windowCount > 0
+                    const selected = value === selectedDate
                     return (
-                      <div
+                      <button
                         key={value}
-                        className="flex min-h-14 flex-col items-center justify-center rounded-lg bg-(--foam) text-xs font-semibold text-(--sea-ink)"
+                        type="button"
+                        disabled={!hasWindows}
+                        aria-pressed={selected}
+                        onClick={() => setSelectedDate(value)}
                         aria-label={`${formatCollectionDate(value)}: ${windowCount} collection windows`}
+                        className={`flex min-h-14 flex-col items-center justify-center rounded-lg text-xs font-semibold ${selected ? 'bg-(--lagoon-deep) text-white' : hasWindows ? 'bg-(--foam) text-(--sea-ink) hover:bg-[rgba(79,184,178,0.16)]' : 'bg-(--foam) text-(--sea-ink-soft) opacity-40'}`}
                       >
-                        <span className="text-[10px] uppercase text-(--sea-ink-soft)">
+                        <span
+                          className={`text-[10px] uppercase ${selected ? 'text-white/80' : 'text-(--sea-ink-soft)'}`}
+                        >
                           {new Intl.DateTimeFormat('en-US', {
                             weekday: 'short',
                           }).format(day)}
                         </span>
                         <span className="mt-1 text-sm">{day.getDate()}</span>
-                        {windowCount > 0 && (
+                        {hasWindows && (
                           <span
                             className="mt-1 flex gap-0.5"
                             aria-hidden="true"
@@ -570,53 +604,50 @@ function RequestedCollectionTime({
                             }).map((_, index) => (
                               <span
                                 key={index}
-                                className="size-1.5 rounded-full bg-(--lagoon-deep)"
+                                className={`size-1.5 rounded-full ${selected ? 'bg-white' : 'bg-(--lagoon-deep)'}`}
                               />
                             ))}
                           </span>
                         )}
-                      </div>
+                      </button>
                     )
                   })}
                 </div>
                 <p className="mt-3 flex items-center gap-2 text-xs text-(--sea-ink-soft)">
-                  <span className="size-1.5 rounded-full bg-(--lagoon-deep)" />A
-                  dot marks a date with available collection windows.
+                  <span className="size-1.5 rounded-full bg-(--lagoon-deep)" />
+                  Select a highlighted date to see its collection windows.
                 </p>
               </div>
-              <div className="mt-5 space-y-5">
-                <p className="text-sm font-semibold">All upcoming windows</p>
-                {windowsByDate.map(([date, slots]) => (
-                  <section key={date}>
-                    <h4 className="text-sm font-semibold text-(--sea-ink-soft)">
-                      {formatCollectionDate(date)}
-                    </h4>
-                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                      {slots.map((slot) => {
-                        const selected = selectedAvailabilityId === slot.id
-                        return (
-                          <button
-                            key={slot.id}
-                            type="button"
-                            aria-pressed={selected}
-                            onClick={() => onSelect(slot.id)}
-                            className={`rounded-xl border px-4 py-3 text-left text-sm shadow-sm transition-all hover:-translate-y-0.5 ${selected ? 'border-(--lagoon-deep) bg-(--header-bg) text-white shadow-md' : 'border-(--line) bg-white hover:border-(--lagoon-deep) hover:bg-(--sand)'}`}
-                          >
-                            <span className="block font-semibold">
-                              {formatCollectionTime(slot.start_time)}–
-                              {formatCollectionTime(slot.end_time)}
-                            </span>
-                            <span
-                              className={`mt-1 block text-xs ${selected ? 'text-white/80' : 'text-(--sea-ink-soft)'}`}
-                            >
-                              {slot.user_email}
-                            </span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </section>
-                ))}
+              <div className="mt-5">
+                <p className="text-sm font-semibold">
+                  {selectedDate
+                    ? formatCollectionDate(selectedDate)
+                    : 'Select a date'}
+                </p>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  {selectedWindows.map((slot) => {
+                    const selected = selectedAvailabilityId === slot.id
+                    return (
+                      <button
+                        key={slot.id}
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() => onSelect(slot.id)}
+                        className={`rounded-xl border px-4 py-3 text-left text-sm shadow-sm transition-all hover:-translate-y-0.5 ${selected ? 'border-(--lagoon-deep) bg-(--header-bg) text-white shadow-md' : 'border-(--line) bg-white hover:border-(--lagoon-deep) hover:bg-(--sand)'}`}
+                      >
+                        <span className="block font-semibold">
+                          {formatCollectionTime(slot.start_time)}–
+                          {formatCollectionTime(slot.end_time)}
+                        </span>
+                        <span
+                          className={`mt-1 block text-xs ${selected ? 'text-white/80' : 'text-(--sea-ink-soft)'}`}
+                        >
+                          {slot.user_email}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
             </>
           ) : (
