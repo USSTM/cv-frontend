@@ -578,6 +578,7 @@ function RequestRow({
     end_time: string
   }>
   preferredAvailability?: {
+    id: string
     date: string
     start_time: string
     end_time: string
@@ -659,6 +660,7 @@ function RequestRow({
             ) : approving ? (
               <ApprovalForm
                 availability={availability}
+                preferredAvailability={preferredAvailability}
                 isSubmitting={isSubmitting}
                 error={error}
                 onApprove={onApprove}
@@ -699,6 +701,7 @@ function RequestRow({
 
 function ApprovalForm({
   availability,
+  preferredAvailability,
   isSubmitting,
   error,
   onApprove,
@@ -710,12 +713,23 @@ function ApprovalForm({
     start_time: string
     end_time: string
   }>
+  preferredAvailability?: {
+    id: string
+    date: string
+    start_time: string
+    end_time: string
+  }
   isSubmitting: boolean
   error?: string
   onApprove: (body: ApprovalBody) => void
   onCancel: () => void
 }) {
-  const [availabilityId, setAvailabilityId] = useState('')
+  const [availabilityId, setAvailabilityId] = useState(
+    preferredAvailability?.id ?? '',
+  )
+  // Only offer manual selection up front when the Member didn't already
+  // choose a collection window during checkout.
+  const [pickingManually, setPickingManually] = useState(!preferredAvailability)
   const today = useMemo(() => dateValue(new Date()), [])
   const upcomingAvailability = useMemo(
     () => availability.filter((slot) => slot.date >= today),
@@ -742,24 +756,62 @@ function ApprovalForm({
         All booking fields are required to approve a Request.
       </p>
       <div className="mt-4 space-y-3">
-        <label className="block text-sm font-medium">
-          Your availability
-          <select
-            required
-            name="availability_id"
-            value={availabilityId}
-            onChange={(event) => setAvailabilityId(event.target.value)}
-            disabled={isSubmitting}
-            className="mt-1 w-full rounded-lg border border-(--line) bg-white px-3 py-2"
-          >
-            <option value="">Select a collection window</option>
-            {upcomingAvailability.map((slot) => (
-              <option key={slot.id} value={slot.id}>
-                {slot.date} · {slot.start_time}–{slot.end_time}
-              </option>
-            ))}
-          </select>
-        </label>
+        {preferredAvailability && !pickingManually ? (
+          <div>
+            <p className="text-sm font-medium">Collection window</p>
+            <div className="mt-1 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-(--line) bg-(--foam) px-3 py-2">
+              <span className="text-sm text-(--sea-ink)">
+                {formatAvailabilityDate(preferredAvailability.date)} ·{' '}
+                {formatAvailabilityTime(preferredAvailability.start_time)}–
+                {formatAvailabilityTime(preferredAvailability.end_time)}
+              </span>
+              <span className="shrink-0 text-xs font-semibold text-(--lagoon-deep)">
+                Member’s pick
+              </span>
+            </div>
+            <button
+              type="button"
+              className="mt-1.5 text-xs font-semibold text-(--lagoon-deep)"
+              onClick={() => {
+                setPickingManually(true)
+                setAvailabilityId('')
+              }}
+            >
+              Use a different window instead
+            </button>
+          </div>
+        ) : (
+          <label className="block text-sm font-medium">
+            Your availability
+            <select
+              required
+              name="availability_id"
+              value={availabilityId}
+              onChange={(event) => setAvailabilityId(event.target.value)}
+              disabled={isSubmitting}
+              className="mt-1 w-full rounded-lg border border-(--line) bg-white px-3 py-2"
+            >
+              <option value="">Select a collection window</option>
+              {upcomingAvailability.map((slot) => (
+                <option key={slot.id} value={slot.id}>
+                  {slot.date} · {slot.start_time}–{slot.end_time}
+                </option>
+              ))}
+            </select>
+            {preferredAvailability && (
+              <button
+                type="button"
+                className="mt-1.5 block text-xs font-semibold text-(--lagoon-deep)"
+                onClick={() => {
+                  setPickingManually(false)
+                  setAvailabilityId(preferredAvailability.id)
+                }}
+              >
+                Use the Member’s requested window instead
+              </button>
+            )}
+          </label>
+        )}
         <label className="block text-sm font-medium">
           Pickup location
           <input
