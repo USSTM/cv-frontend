@@ -1,4 +1,4 @@
-import { Link, createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import {
   Boxes,
   CircleUserRound,
@@ -259,17 +259,14 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
           <div className="flex flex-col gap-4 border-b border-(--line) px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <div>
               <h2 className="text-lg font-semibold">
-                {isGlobalAdmin ? 'Member management' : 'Group management'}
+                {isGlobalAdmin ? 'System management' : 'Group management'}
               </h2>
               <p className="mt-1 text-sm text-(--sea-ink-soft)">
                 {isGlobalAdmin
-                  ? 'Update member roles and group access.'
+                  ? 'Manage members, groups, and catalog items across the system.'
                   : 'Maintain your group’s access and catalog information.'}
               </p>
             </div>
-            <Button asChild className="btn-inv w-fit">
-              <Link to="/catalog">View Catalog</Link>
-            </Button>
           </div>
           <div className="border-b border-(--line) px-5 sm:px-6">
             <div

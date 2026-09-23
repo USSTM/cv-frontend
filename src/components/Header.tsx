@@ -1,6 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
-import { Bell, LogOut, Menu, ShoppingCart, UserRound, X } from 'lucide-react'
+import {
+  Bell,
+  LogOut,
+  Menu,
+  Shield,
+  ShoppingCart,
+  UserRound,
+  X,
+} from 'lucide-react'
 import { useCartQuery } from '@/api/catalog-queries'
 import { useUnreadNotificationCountQuery } from '@/api/notification-queries'
 import { useCurrentMemberQuery, useLogoutMutation } from '@/api/session-queries'
@@ -108,7 +116,17 @@ export default function Header() {
                     className: 'nav-link is-active',
                   }}
                 >
+                  {item.privileged && (
+                    <Shield
+                      aria-hidden="true"
+                      className="mr-1 inline text-emerald-400"
+                      size={16}
+                    />
+                  )}
                   {item.label}
+                  {item.privileged && (
+                    <span className="sr-only"> (privileged access)</span>
+                  )}
                   {item.label === 'Cart' && cartCount > 0 && (
                     <span className="ml-1 inline-flex min-w-4 justify-center rounded-full bg-white/20 px-1 text-xs">
                       {cartCount}
@@ -277,7 +295,17 @@ export default function Header() {
                   }}
                   onClick={() => setMenuOpen(false)}
                 >
+                  {item.privileged && (
+                    <Shield
+                      aria-hidden="true"
+                      className="mr-1.5 inline text-emerald-600"
+                      size={16}
+                    />
+                  )}
                   {item.label}
+                  {item.privileged && (
+                    <span className="sr-only"> (privileged access)</span>
+                  )}
                   {item.label === 'Cart' && cartCount > 0 && (
                     <ShoppingCart
                       aria-hidden="true"
