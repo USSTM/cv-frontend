@@ -52,21 +52,22 @@ function CatalogPage() {
   const [type, setType] = useState<ItemType | undefined>()
   const [inStock, setInStock] = useState(false)
   const [lastAdded, setLastAdded] = useState<string | null>(null)
-  const itemsQuery = useCatalogItemsQuery({ type, inStock })
+  const itemsQuery = useCatalogItemsQuery({ type })
   const cartQuery = useCartQuery(activeGroup?.id)
   const addToCart = useAddItemToCartMutation()
   const cart = cartQuery.data ?? []
   const itemCount = cart.reduce((total, item) => total + item.quantity, 0)
   const filteredItems = useMemo(() => {
     const query = search.trim().toLocaleLowerCase()
-    if (!query) return itemsQuery.data?.data ?? []
-
-    return (itemsQuery.data?.data ?? []).filter((item) =>
-      `${item.name} ${item.description ?? ''}`
-        .toLocaleLowerCase()
-        .includes(query),
+    return (itemsQuery.data?.data ?? []).filter(
+      (item) =>
+        (!inStock || item.stock > 0 || item.type === 'high') &&
+        (!query ||
+          `${item.name} ${item.description ?? ''}`
+            .toLocaleLowerCase()
+            .includes(query)),
     )
-  }, [itemsQuery.data?.data, search])
+  }, [inStock, itemsQuery.data?.data, search])
 
   function addItem(itemId: string) {
     if (!activeGroup) return
@@ -132,7 +133,7 @@ function CatalogPage() {
               className={inStock ? 'btn-inv' : ''}
               onClick={() => setInStock((value) => !value)}
             >
-              {inStock ? 'In stock only' : 'Show in stock'}
+              {inStock ? 'Available & requestable' : 'Show in stock'}
             </Button>
           </div>
         </section>
@@ -146,6 +147,7 @@ function CatalogPage() {
             {filteredItems.map((item) => {
               const cartItem = cart.find((entry) => entry.itemId === item.id)
               const unavailable = item.stock === 0
+              const canRequestAhead = unavailable && item.type === 'high'
               const isAdding =
                 addToCart.isPending && addToCart.variables.itemId === item.id
               return (
@@ -189,9 +191,9 @@ function CatalogPage() {
                       className="btn-inv min-h-10 w-full whitespace-normal"
                       disabled={
                         !activeGroup ||
-                        unavailable ||
+                        (unavailable && !canRequestAhead) ||
                         isAdding ||
-                        cartItem?.quantity === item.stock
+                        (!canRequestAhead && cartItem?.quantity === item.stock)
                       }
                       onClick={() => addItem(item.id)}
                     >
@@ -203,7 +205,9 @@ function CatalogPage() {
                       {!activeGroup
                         ? 'Choose an Active Group'
                         : unavailable
-                          ? 'Unavailable'
+                          ? canRequestAhead
+                            ? 'Request for a future window'
+                            : 'Unavailable'
                           : isAdding
                             ? 'Adding…'
                             : cartItem

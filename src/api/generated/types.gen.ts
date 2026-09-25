@@ -271,6 +271,11 @@ export type CheckoutCartRequest = {
    * Photo URL or storage key for MEDIUM items (ignored for LOW/HIGH). Use the beforeConditionUrl returned by UploadPreCheckoutConditionImage.
    */
   beforeConditionUrl: string
+  /**
+   * Member's preferred collection window for HIGH items.
+   */
+  preferredAvailabilityId?: Uuid
+  requestedReturnAt?: string
 }
 
 export type CheckoutCartResponse = {
@@ -416,6 +421,11 @@ export type RequestItemRequest = {
    * Quantity of the item to request
    */
   quantity: number
+  /**
+   * Member's preferred collection window for this Request.
+   */
+  preferred_availability_id?: Uuid
+  requested_return_at?: string
 }
 
 export type RequestItemResponse = {
@@ -427,6 +437,11 @@ export type RequestItemResponse = {
   status: RequestStatus
   reviewed_by?: Uuid
   reviewed_at?: string | null
+  /**
+   * The collection window requested by the Member.
+   */
+  preferred_availability_id?: Uuid
+  requested_return_at?: string
   /**
    * Item name, included in approval request lists
    */

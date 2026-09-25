@@ -49,6 +49,7 @@ function ItemDetailPage() {
     return <ItemError onRetry={() => itemQuery.refetch()} />
 
   const unavailable = item.stock === 0
+  const canRequestAhead = unavailable && item.type === 'high'
   const isAdding = addToCart.isPending
   function addItem() {
     if (!activeGroup) return
@@ -131,9 +132,9 @@ function ItemDetailPage() {
                 className="btn-inv w-full"
                 disabled={
                   !activeGroup ||
-                  unavailable ||
+                  (unavailable && !canRequestAhead) ||
                   isAdding ||
-                  cartItem?.quantity === item.stock
+                  (!canRequestAhead && cartItem?.quantity === item.stock)
                 }
                 onClick={addItem}
               >
@@ -145,7 +146,9 @@ function ItemDetailPage() {
                 {!activeGroup
                   ? 'Choose an Active Group'
                   : unavailable
-                    ? 'Unavailable'
+                    ? canRequestAhead
+                      ? 'Request for a future window'
+                      : 'Unavailable'
                     : isAdding
                       ? 'Adding…'
                       : cartItem
