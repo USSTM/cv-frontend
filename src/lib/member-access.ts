@@ -9,6 +9,11 @@ export type NavigationItem = {
     | '/approvals'
     | '/group-admin'
     | '/global-admin'
+  /**
+   * Marks a link to a privileged, role-restricted page so the header can
+   * show an indicator distinguishing it from ordinary member pages.
+   */
+  privileged?: boolean
 }
 
 const MEMBER_NAVIGATION: NavigationItem[] = [
@@ -52,7 +57,7 @@ export function navigationForMember(
   const navigation = [...MEMBER_NAVIGATION]
 
   if (hasRole(member, 'approver') || hasRole(member, 'global_admin')) {
-    navigation.push({ label: 'Approvals', to: '/approvals' })
+    navigation.push({ label: 'Approvals', to: '/approvals', privileged: true })
   }
 
   if (activeGroup?.roles.includes('group_admin')) {
@@ -60,7 +65,11 @@ export function navigationForMember(
   }
 
   if (hasRole(member, 'global_admin')) {
-    navigation.push({ label: 'Global Admin', to: '/global-admin' })
+    navigation.push({
+      label: 'Global Admin',
+      to: '/global-admin',
+      privileged: true,
+    })
   }
 
   return navigation

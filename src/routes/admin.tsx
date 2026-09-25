@@ -1,7 +1,9 @@
-import { Link, createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import {
   Boxes,
+  Building2,
   CircleUserRound,
+  ImagePlus,
   Pencil,
   Trash2,
   UsersRound,
@@ -22,6 +24,7 @@ import {
   useUpdateMemberGroupMembershipMutation,
   useUpdateMemberRolesMutation,
   useUpdateGroupMutation,
+  useUploadGroupLogoMutation,
 } from '@/api/admin-queries'
 import type {
   Group,
@@ -106,6 +109,8 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
   const [creatingCatalogItem, setCreatingCatalogItem] = useState(false)
   const [catalogItemDraft, setCatalogItemDraft] =
     useState<CatalogItemDraft>(emptyCatalogItem)
+  const [newGroupLogo, setNewGroupLogo] = useState<File | null>(null)
+  const [editedGroupLogo, setEditedGroupLogo] = useState<File | null>(null)
   const invite = useInviteMemberMutation()
   const updateMembership = useUpdateMemberGroupMembershipMutation()
   const groupsQuery = useGroupsQuery(isGlobalAdmin)
@@ -123,6 +128,7 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
   const createCatalogItem = useCreateCatalogItemMutation()
   const updateCatalogItem = useUpdateCatalogItemMutation()
   const deleteCatalogItem = useDeleteCatalogItemMutation()
+  const uploadGroupLogo = useUploadGroupLogoMutation()
   const title = isGlobalAdmin ? 'Global administration' : 'Group administration'
 
   function addMember() {
@@ -149,7 +155,6 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
       { onSuccess: () => setEditing(null) },
     )
   }
-
   function openCatalogItemEditor(item?: ItemResponse) {
     setCatalogItemToEdit(item ?? null)
     setCreatingCatalogItem(!item)
@@ -184,29 +189,46 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
       },
     })
   }
-  function saveGroup() {
+  async function saveGroup() {
     const name = newGroup.name.trim()
     if (!name) return
-    createGroup.mutate(
-      { name, description: newGroup.description.trim() || undefined },
-      {
-        onSuccess: () => {
-          setNewGroup({ name: '', description: '' })
-          setCreatingGroup(false)
-        },
-      },
-    )
+    try {
+      const group = await createGroup.mutateAsync({
+        name,
+        description: newGroup.description.trim() || undefined,
+      })
+      if (newGroupLogo) {
+        await uploadGroupLogo.mutateAsync({
+          groupId: group.id,
+          image: newGroupLogo,
+        })
+      }
+      setNewGroup({ name: '', description: '' })
+      setNewGroupLogo(null)
+      setCreatingGroup(false)
+    } catch {
+      // Mutation errors are shown in the form below.
+    }
   }
-  function saveEditedGroup() {
+  async function saveEditedGroup() {
     if (!groupToEdit || !editedGroup.name.trim()) return
-    updateGroup.mutate(
-      {
+    try {
+      await updateGroup.mutateAsync({
         groupId: groupToEdit.id,
         name: editedGroup.name.trim(),
         description: editedGroup.description.trim() || undefined,
-      },
-      { onSuccess: () => setGroupToEdit(null) },
-    )
+      })
+      if (editedGroupLogo) {
+        await uploadGroupLogo.mutateAsync({
+          groupId: groupToEdit.id,
+          image: editedGroupLogo,
+        })
+      }
+      setEditedGroupLogo(null)
+      setGroupToEdit(null)
+    } catch {
+      // Mutation errors are shown in the form below.
+    }
   }
 
   return (
@@ -259,17 +281,14 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
           <div className="flex flex-col gap-4 border-b border-(--line) px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <div>
               <h2 className="text-lg font-semibold">
-                {isGlobalAdmin ? 'Member management' : 'Group management'}
+                {isGlobalAdmin ? 'System management' : 'Group management'}
               </h2>
               <p className="mt-1 text-sm text-(--sea-ink-soft)">
                 {isGlobalAdmin
-                  ? 'Update member roles and group access.'
+                  ? 'Manage members, groups, and catalog items across the system.'
                   : 'Maintain your group’s access and catalog information.'}
               </p>
             </div>
-            <Button asChild className="btn-inv w-fit">
-              <Link to="/catalog">View Catalog</Link>
-            </Button>
           </div>
           <div className="border-b border-(--line) px-5 sm:px-6">
             <div
@@ -362,7 +381,11 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
                 <Button
                   variant="outline"
                   className="border-(--line)"
-                  onClick={() => setCreatingGroup(true)}
+                  onClick={() => {
+                    setNewGroup({ name: '', description: '' })
+                    setNewGroupLogo(null)
+                    setCreatingGroup(true)
+                  }}
                 >
                   Create group
                 </Button>
@@ -378,15 +401,28 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
                       key={group.id}
                       className="flex items-center justify-between gap-4 p-4 sm:p-5"
                     >
-                      <div className="min-w-0">
-                        <p className="font-semibold text-(--sea-ink)">
-                          {group.name}
-                        </p>
-                        {group.description && (
-                          <p className="mt-1 truncate text-sm text-(--sea-ink-soft)">
-                            {group.description}
-                          </p>
+                      <div className="flex min-w-0 items-center gap-3">
+                        {(group.logo_thumbnail_url ?? group.logo_url) ? (
+                          <img
+                            src={group.logo_thumbnail_url ?? group.logo_url}
+                            alt={`${group.name} logo`}
+                            className="size-10 shrink-0 rounded-lg border border-(--line) object-cover"
+                          />
+                        ) : (
+                          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-(--line) bg-(--sand) text-(--lagoon-deep)">
+                            <Building2 aria-hidden="true" size={18} />
+                          </div>
                         )}
+                        <div className="min-w-0">
+                          <p className="font-semibold text-(--sea-ink)">
+                            {group.name}
+                          </p>
+                          {group.description && (
+                            <p className="mt-1 truncate text-sm text-(--sea-ink-soft)">
+                              {group.description}
+                            </p>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <Button
@@ -400,6 +436,7 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
                               name: group.name,
                               description: group.description ?? '',
                             })
+                            setEditedGroupLogo(null)
                             setGroupToEdit(group)
                           }}
                         >
@@ -678,7 +715,7 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
                 htmlFor="group-description"
                 className="text-sm font-semibold"
               >
-                Description <span className="font-normal">(optional)</span>
+                Expanded Name <span className="font-normal">(optional)</span>
               </label>
               <Input
                 id="group-description"
@@ -692,7 +729,14 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
                 }
               />
             </div>
-            {createGroup.error && <ErrorText error={createGroup.error} />}
+            <LogoUpload
+              id="group-logo"
+              file={newGroupLogo}
+              onChange={setNewGroupLogo}
+            />
+            {(createGroup.error || uploadGroupLogo.error) && (
+              <ErrorText error={createGroup.error ?? uploadGroupLogo.error} />
+            )}
             <DialogFooter>
               <DialogClose asChild>
                 <Button variant="outline" className="border-(--line)">
@@ -702,9 +746,11 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
               <Button
                 type="submit"
                 className="btn-inv"
-                disabled={createGroup.isPending}
+                disabled={createGroup.isPending || uploadGroupLogo.isPending}
               >
-                {createGroup.isPending ? 'Creating…' : 'Create group'}
+                {createGroup.isPending || uploadGroupLogo.isPending
+                  ? 'Saving…'
+                  : 'Create group'}
               </Button>
             </DialogFooter>
           </form>
@@ -787,7 +833,7 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
                 htmlFor="edit-group-description"
                 className="text-sm font-semibold"
               >
-                Description <span className="font-normal">(optional)</span>
+                Expanded Name <span className="font-normal">(optional)</span>
               </label>
               <Input
                 id="edit-group-description"
@@ -801,7 +847,14 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
                 }
               />
             </div>
-            {updateGroup.error && <ErrorText error={updateGroup.error} />}
+            <LogoUpload
+              id="edit-group-logo"
+              file={editedGroupLogo}
+              onChange={setEditedGroupLogo}
+            />
+            {(updateGroup.error || uploadGroupLogo.error) && (
+              <ErrorText error={updateGroup.error ?? uploadGroupLogo.error} />
+            )}
             <DialogFooter>
               <Button
                 type="button"
@@ -814,9 +867,11 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
               <Button
                 type="submit"
                 className="btn-inv"
-                disabled={updateGroup.isPending}
+                disabled={updateGroup.isPending || uploadGroupLogo.isPending}
               >
-                {updateGroup.isPending ? 'Saving…' : 'Save changes'}
+                {updateGroup.isPending || uploadGroupLogo.isPending
+                  ? 'Saving…'
+                  : 'Save changes'}
               </Button>
             </DialogFooter>
           </form>
@@ -1495,5 +1550,43 @@ function AdminTab({
     >
       {children}
     </button>
+  )
+}
+function LogoUpload({
+  id,
+  file,
+  onChange,
+}: {
+  id: string
+  file: File | null
+  onChange: (file: File | null) => void
+}) {
+  return (
+    <div>
+      <label htmlFor={id} className="text-sm font-semibold">
+        Group logo <span className="font-normal">(optional)</span>
+      </label>
+      <div className="mt-2 flex items-center gap-3 rounded-lg border border-dashed border-(--line) bg-(--sand) p-3">
+        <ImagePlus
+          aria-hidden="true"
+          className="shrink-0 text-(--lagoon-deep)"
+          size={20}
+        />
+        <div className="min-w-0 flex-1">
+          <input
+            id={id}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-(--header-bg) file:px-3 file:py-2 file:font-semibold file:text-white"
+            onChange={(event) => onChange(event.target.files?.[0] ?? null)}
+          />
+          <p className="mt-1 text-xs text-(--sea-ink-soft)">
+            {file
+              ? `${file.name} selected`
+              : 'Upload a square PNG, JPEG, or WebP image.'}
+          </p>
+        </div>
+      </div>
+    </div>
   )
 }
