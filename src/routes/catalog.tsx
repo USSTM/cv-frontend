@@ -12,6 +12,7 @@ import {
   useAddItemToCartMutation,
   useCartQuery,
   useCatalogItemsQuery,
+  useItemImagesQuery,
 } from '@/api/catalog-queries'
 import type { ItemType } from '@/api/generated/types.gen'
 import { Badge } from '@/components/ui/badge'
@@ -158,17 +159,10 @@ function CatalogPage() {
                     params={{ itemId: item.id }}
                     className="block p-6 no-underline"
                   >
-                    {item.urls?.[0] ? (
-                      <img
-                        src={item.urls[0]}
-                        alt=""
-                        className="mb-5 aspect-[16/9] w-full rounded-xl object-cover"
-                      />
-                    ) : (
-                      <div className="mb-5 flex aspect-[16/9] items-center justify-center rounded-xl bg-(--foam) text-(--sea-ink-soft)">
-                        <ImageOff aria-hidden="true" size={28} />
-                      </div>
-                    )}
+                    <CatalogCardImage
+                      itemId={item.id}
+                      fallbackUrl={item.urls?.[0]}
+                    />
                     <div className="flex items-start justify-between gap-3">
                       <h2 className="text-xl font-semibold">{item.name}</h2>
                       <Badge className={itemTypeClass(item.type)}>
@@ -238,6 +232,37 @@ function CatalogPage() {
         )}
       </section>
     </main>
+  )
+}
+
+// Uploaded images live in the image service, not in the item's legacy `urls`
+// column, so the card asks for them the same way the detail page does.
+function CatalogCardImage({
+  itemId,
+  fallbackUrl,
+}: {
+  itemId: string
+  fallbackUrl?: string
+}) {
+  const { data: images } = useItemImagesQuery(itemId)
+  const primary =
+    images?.find((image) => image.is_primary) ??
+    images
+      ?.slice()
+      .sort((a, b) => a.display_order - b.display_order)
+      .at(0)
+  const src = primary?.thumbnail_url ?? fallbackUrl
+
+  return src ? (
+    <img
+      src={src}
+      alt=""
+      className="mb-5 aspect-[16/9] w-full rounded-xl object-cover"
+    />
+  ) : (
+    <div className="mb-5 flex aspect-[16/9] items-center justify-center rounded-xl bg-(--foam) text-(--sea-ink-soft)">
+      <ImageOff aria-hidden="true" size={28} />
+    </div>
   )
 }
 
