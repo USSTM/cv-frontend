@@ -331,7 +331,7 @@ function ReturnBorrowingButton({
               onClick={confirm}
               disabled={returnItem.isPending}
             >
-              {returnItem.isPending ? 'Saving…' : 'Confirm return'}
+              {returnItem.isPending ? 'Savingâ€¦' : 'Confirm return'}
             </Button>
           </DialogFooter>
         </DialogContent>
