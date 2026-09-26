@@ -7,6 +7,7 @@ import {
   Send,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import type { ReactNode } from 'react'
 
 import type {
   BookingResponse,
@@ -19,10 +20,28 @@ import {
   useMemberBorrowingsQuery,
   useMemberRequestsQuery,
   useMyBookingsQuery,
+  useReturnBorrowedItemMutation,
 } from '@/api/activity-queries'
+import type { ReturnCondition } from '@/api/activity'
 import { useCurrentMemberQuery } from '@/api/session-queries'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useActiveGroup } from '@/lib/active-group'
 import { requireAuth } from '@/lib/route-guards'
 
@@ -211,9 +230,15 @@ function BorrowingsList({
             status={returned ? 'returned' : 'active'}
             detail={`Borrowed ${formatDate(entry.borrowed_at)} Â· Due ${formatDate(entry.due_date)}`}
             date={
-              returned
-                ? `Returned ${formatDate(entry.returned_at!)}`
-                : `Due ${formatDate(entry.due_date)}`
+              returned ? `Returned ${formatDate(entry.returned_at!)}` : undefined
+            }
+            action={
+              returned ? undefined : (
+                <ReturnBorrowingButton
+                  itemId={entry.item_id}
+                  itemName={itemNames.get(entry.item_id) ?? 'this item'}
+                />
+              )
             }
           />
         )
@@ -223,6 +248,98 @@ function BorrowingsList({
     <Empty view="borrowings" />
   )
 }
+const RETURN_CONDITIONS: Array<{ value: ReturnCondition; label: string }> = [
+  { value: 'pristine', label: 'Pristine' },
+  { value: 'good', label: 'Good' },
+  { value: 'decent', label: 'Decent' },
+  { value: 'damaged', label: 'Damaged' },
+  { value: 'unusable', label: 'Unusable' },
+]
+
+function ReturnBorrowingButton({
+  itemId,
+  itemName,
+}: {
+  itemId: string
+  itemName: string
+}) {
+  const [open, setOpen] = useState(false)
+  const [condition, setCondition] = useState<ReturnCondition>('good')
+  const returnItem = useReturnBorrowedItemMutation()
+
+  function handleOpenChange(next: boolean) {
+    setOpen(next)
+    if (!next) {
+      setCondition('good')
+      returnItem.reset()
+    }
+  }
+
+  function confirm() {
+    returnItem.mutate(
+      { itemId, afterCondition: condition },
+      { onSuccess: () => handleOpenChange(false) },
+    )
+  }
+
+  return (
+    <>
+      <Button className="btn-inv shrink-0" onClick={() => setOpen(true)}>
+        Mark as returned
+      </Button>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Mark as returned</DialogTitle>
+            <DialogDescription>
+              Confirm the condition of {itemName} as you return it. This
+              records the item as returned and makes it available again.
+            </DialogDescription>
+          </DialogHeader>
+          <label className="block text-sm font-semibold">
+            Condition on return
+            <Select
+              value={condition}
+              onValueChange={(value) => setCondition(value as ReturnCondition)}
+              disabled={returnItem.isPending}
+            >
+              <SelectTrigger className="mt-2 w-full bg-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {RETURN_CONDITIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </label>
+          {returnItem.error && (
+            <p role="alert" className="text-sm text-red-700">
+              {returnItem.error.message}
+            </p>
+          )}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline" disabled={returnItem.isPending}>
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button
+              className="btn-inv"
+              onClick={confirm}
+              disabled={returnItem.isPending}
+            >
+              {returnItem.isPending ? 'Saving…' : 'Confirm return'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
 function RequestsList({
   entries,
   itemNames,
@@ -255,11 +372,13 @@ function ActivityRow({
   status,
   detail,
   date,
+  action,
 }: {
   title: string
   status: string
   detail: string
-  date: string
+  date?: string
+  action?: ReactNode
 }) {
   return (
     <li className="p-4 sm:p-5">
@@ -280,9 +399,11 @@ function ActivityRow({
             <p className="mt-1 text-sm text-(--sea-ink-soft)">{detail}</p>
           </div>
         </div>
-        <p className="shrink-0 text-sm font-medium text-(--sea-ink-soft)">
-          {date}
-        </p>
+        {action ?? (
+          <p className="shrink-0 text-sm font-medium text-(--sea-ink-soft)">
+            {date}
+          </p>
+        )}
       </div>
     </li>
   )

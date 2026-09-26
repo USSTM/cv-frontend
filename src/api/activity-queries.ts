@@ -1,9 +1,10 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   getActivityItems,
   getMemberBorrowings,
   getMemberRequests,
   getMyBookings,
+  returnBorrowedItem,
 } from './activity'
 
 export function useMyBookingsQuery() {
@@ -30,5 +31,19 @@ export function useActivityItemsQuery() {
   return useQuery({
     queryKey: ['activity', 'items'],
     queryFn: getActivityItems,
+  })
+}
+
+export function useReturnBorrowedItemMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: returnBorrowedItem,
+    onSuccess: async () => {
+      // Returning restocks the item, so catalog stock counts change too.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['activity'] }),
+        queryClient.invalidateQueries({ queryKey: ['catalog'] }),
+      ])
+    },
   })
 }

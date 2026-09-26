@@ -1,4 +1,5 @@
 import type {
+  BorrowingResponse,
   PaginatedBookingResponse,
   PaginatedBorrowingResponse,
   PaginatedItemResponse,
@@ -25,4 +26,21 @@ export function getMemberRequests(memberId: string) {
 }
 export function getActivityItems() {
   return apiRequest<PaginatedItemResponse>(`/items?limit=${PAGE_SIZE}`)
+}
+
+export type ReturnCondition =
+  | 'unusable'
+  | 'damaged'
+  | 'decent'
+  | 'good'
+  | 'pristine'
+
+export function returnBorrowedItem(input: {
+  itemId: string
+  afterCondition: ReturnCondition
+}) {
+  return apiRequest<BorrowingResponse>(
+    `/borrowings/item/return/${encodeURIComponent(input.itemId)}`,
+    { method: 'POST', body: { after_condition: input.afterCondition } },
+  )
 }
