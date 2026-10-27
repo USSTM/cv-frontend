@@ -27,6 +27,15 @@ import { useCurrentMemberQuery } from '@/api/session-queries'
 import type { RequestItemResponse } from '@/api/generated/types.gen'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { requireApprover } from '@/lib/route-guards'
 
 export const Route = createFileRoute('/approvals')({
@@ -39,6 +48,10 @@ type ApprovalBody = {
   availability_id: string
   pickup_location: string
   return_location: string
+}
+type DenialBody = {
+  status: 'denied'
+  denial_reason: string
 }
 type View = 'pending' | 'all'
 type DisplayRequest = RequestItemResponse
@@ -53,6 +66,9 @@ function ApprovalsPage() {
   const review = useReviewRequestMutation()
   const [openId, setOpenId] = useState<string | null>(null)
   const [approvingId, setApprovingId] = useState<string | null>(null)
+  const [denyingRequest, setDenyingRequest] = useState<DisplayRequest | null>(
+    null,
+  )
   const activeQuery = view === 'pending' ? pending : allRequests
   const requests: DisplayRequest[] = activeQuery.data?.data ?? []
   const ownAvailability = useMemo(
@@ -68,13 +84,14 @@ function ApprovalsPage() {
     [bookings.data],
   )
 
-  function submit(id: string, body: ApprovalBody | { status: 'denied' }) {
+  function submit(id: string, body: ApprovalBody | DenialBody) {
     review.mutate(
       { requestId: id, body },
       {
         onSuccess: () => {
           setApprovingId(null)
           setOpenId(null)
+          setDenyingRequest(null)
         },
       },
     )
@@ -165,7 +182,7 @@ function ApprovalsPage() {
                     )
                   }
                   onApprove={(body) => submit(request.id, body)}
-                  onDeny={() => submit(request.id, { status: 'denied' })}
+                  onDeny={() => setDenyingRequest(request)}
                   onStart={() => setApprovingId(request.id)}
                   onCancel={() => setApprovingId(null)}
                 />
@@ -173,6 +190,22 @@ function ApprovalsPage() {
             </ul>
           )}
         </section>
+        <DenyRequestDialog
+          request={denyingRequest}
+          isSubmitting={review.isPending}
+          error={review.error?.message}
+          onOpenChange={(open) => {
+            if (!open && !review.isPending) setDenyingRequest(null)
+          }}
+          onDeny={(denialReason) => {
+            if (denyingRequest) {
+              submit(denyingRequest.id, {
+                status: 'denied',
+                denial_reason: denialReason,
+              })
+            }
+          }}
+        />
       </section>
     </main>
   )
@@ -216,8 +249,7 @@ function AvailabilityPanel({
     [showExtendedHours, timeSlots.data],
   )
   const startTimeOptions = useMemo(
-    () =>
-      [...new Set(visibleTimeSlots.map((slot) => slot.start_time))].sort(),
+    () => [...new Set(visibleTimeSlots.map((slot) => slot.start_time))].sort(),
     [visibleTimeSlots],
   )
   const endTimeOptions = useMemo(
@@ -639,6 +671,81 @@ function RequestRow({
         </div>
       )}
     </li>
+  )
+}
+
+function DenyRequestDialog({
+  request,
+  isSubmitting,
+  error,
+  onOpenChange,
+  onDeny,
+}: {
+  request: DisplayRequest | null
+  isSubmitting: boolean
+  error?: string
+  onOpenChange: (open: boolean) => void
+  onDeny: (denialReason: string) => void
+}) {
+  const [denialReason, setDenialReason] = useState('')
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const reason = denialReason.trim()
+    if (reason) onDeny(reason)
+  }
+
+  return (
+    <Dialog
+      open={Boolean(request)}
+      onOpenChange={(open) => {
+        if (!open) setDenialReason('')
+        onOpenChange(open)
+      }}
+    >
+      <DialogContent>
+        <form onSubmit={submit}>
+          <DialogHeader>
+            <DialogTitle>Deny Request</DialogTitle>
+            <DialogDescription>
+              Tell the member why {request?.item_name ?? 'this Request'} was
+              denied. This reason will appear in their My Activity.
+            </DialogDescription>
+          </DialogHeader>
+          <label className="mt-5 block text-sm font-medium">
+            Reason for denial
+            <textarea
+              required
+              value={denialReason}
+              onChange={(event) => setDenialReason(event.target.value)}
+              disabled={isSubmitting}
+              className="mt-1 min-h-28 w-full rounded-lg border border-(--line) px-3 py-2"
+              placeholder="Explain why this Request cannot be approved."
+            />
+          </label>
+          {error && (
+            <p role="alert" className="mt-3 text-sm text-red-700">
+              {error}
+            </p>
+          )}
+          <DialogFooter className="mt-5">
+            <DialogClose asChild>
+              <Button type="button" variant="outline" disabled={isSubmitting}>
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button
+              type="submit"
+              disabled={isSubmitting || !denialReason.trim()}
+              className="bg-red-700 text-white hover:bg-red-800"
+            >
+              <X aria-hidden="true" size={16} />
+              {isSubmitting ? 'Denying…' : 'Deny Request'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
 
