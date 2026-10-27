@@ -5,13 +5,18 @@ import {
   Camera,
   CheckCircle2,
   ClipboardCheck,
+  Clock3,
+  ChevronLeft,
+  ChevronRight,
   PackageCheck,
+  RotateCcw,
   Send,
   ShieldCheck,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { useCartQuery, useCheckoutCartMutation } from '@/api/catalog-queries'
+import { useAvailabilityQuery } from '@/api/availability-queries'
 import {
   type CheckoutCartResponse,
   type ItemType,
@@ -68,6 +73,8 @@ function CheckoutPage() {
   const [dueDate, setDueDate] = useState('')
   const [condition, setCondition] = useState<Condition>('good')
   const [conditionPhoto, setConditionPhoto] = useState<File | null>(null)
+  const [preferredAvailabilityId, setPreferredAvailabilityId] = useState('')
+  const [requestedReturnAt, setRequestedReturnAt] = useState('')
   const [result, setResult] = useState<CheckoutCartResponse | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
@@ -82,12 +89,24 @@ function CheckoutPage() {
   const hasBorrowing = groupedCart.some(
     (section) => section.type === 'medium' && section.items.length > 0,
   )
+  const hasRequest = groupedCart.some(
+    (section) => section.type === 'high' && section.items.length > 0,
+  )
+  const availability = useAvailabilityQuery()
+  const upcomingAvailability = useMemo(
+    () =>
+      (availability.data ?? []).filter(
+        (slot) => slot.date.slice(0, 10) > todayDateValue(),
+      ),
+    [availability.data],
+  )
   const itemCount = cart.reduce((total, item) => total + item.quantity, 0)
   const canSubmit =
     Boolean(activeGroup) &&
     !isUploadingPhoto &&
     !checkout.isPending &&
-    (!hasBorrowing || Boolean(dueDate && conditionPhoto))
+    (!hasBorrowing || Boolean(dueDate && conditionPhoto)) &&
+    (!hasRequest || Boolean(preferredAvailabilityId && requestedReturnAt))
 
   async function handleSubmit() {
     if (!activeGroup) return
@@ -115,6 +134,10 @@ function CheckoutPage() {
           : new Date().toISOString(),
         beforeCondition: condition,
         beforeConditionUrl,
+        preferredAvailabilityId: preferredAvailabilityId || undefined,
+        requestedReturnAt: requestedReturnAt
+          ? new Date(requestedReturnAt).toISOString()
+          : undefined,
       })
       setResult(checkoutResult)
     } catch (error) {
@@ -232,6 +255,17 @@ function CheckoutPage() {
                       onPhotoChange={setConditionPhoto}
                     />
                   )}
+                  {section.type === 'high' && (
+                    <RequestedCollectionTime
+                      selectedAvailabilityId={preferredAvailabilityId}
+                      requestedReturnAt={requestedReturnAt}
+                      availability={upcomingAvailability}
+                      isLoading={availability.isLoading}
+                      isError={availability.isError}
+                      onSelect={setPreferredAvailabilityId}
+                      onRequestedReturnAtChange={setRequestedReturnAt}
+                    />
+                  )}
                 </section>
               ))}
           </div>
@@ -298,6 +332,16 @@ function CheckoutPage() {
             {hasBorrowing && !conditionPhoto && (
               <p className="mt-3 text-center text-xs leading-5 text-(--sea-ink-soft)">
                 Attach a condition photo to submit.
+              </p>
+            )}
+            {hasRequest && !preferredAvailabilityId && (
+              <p className="mt-3 text-center text-xs leading-5 text-(--sea-ink-soft)">
+                Choose a preferred collection time to submit your Request.
+              </p>
+            )}
+            {hasRequest && !requestedReturnAt && (
+              <p className="mt-3 text-center text-xs leading-5 text-(--sea-ink-soft)">
+                Choose when you will return your Request Item.
               </p>
             )}
           </aside>
@@ -394,6 +438,292 @@ function BorrowingDetails({
       </div>
     </div>
   )
+}
+
+function RequestedCollectionTime({
+  selectedAvailabilityId,
+  requestedReturnAt,
+  availability,
+  isLoading,
+  isError,
+  onSelect,
+  onRequestedReturnAtChange,
+}: {
+  selectedAvailabilityId: string
+  requestedReturnAt: string
+  availability: Array<{
+    id: string
+    date: string
+    start_time: string
+    end_time: string
+    user_email: string
+  }>
+  isLoading: boolean
+  isError: boolean
+  onSelect: (id: string) => void
+  onRequestedReturnAtChange: (value: string) => void
+}) {
+  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()))
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const days = useMemo(
+    () => Array.from({ length: 7 }, (_, index) => addDays(weekStart, index)),
+    [weekStart],
+  )
+  const windowsByDate = useMemo(() => {
+    const grouped = new Map<string, typeof availability>()
+    for (const slot of availability) {
+      const date = slot.date.slice(0, 10)
+      grouped.set(date, [...(grouped.get(date) ?? []), slot])
+    }
+    return [...grouped.entries()].sort(([a], [b]) => a.localeCompare(b))
+  }, [availability])
+  const nextAvailableDate =
+    windowsByDate.length > 0 ? windowsByDate[0][0] : null
+
+  // Default to the next available day once the availability has loaded, and
+  // scroll the week strip to it so it's visible without navigating.
+  useEffect(() => {
+    if (selectedDate !== null || nextAvailableDate === null) return
+    setSelectedDate(nextAvailableDate)
+    setWeekStart(startOfWeek(new Date(`${nextAvailableDate}T00:00:00`)))
+  }, [nextAvailableDate, selectedDate])
+
+  const selectedWindows = useMemo(
+    () => windowsByDate.find(([date]) => date === selectedDate)?.[1] ?? [],
+    [windowsByDate, selectedDate],
+  )
+
+  function selectDate(date: string) {
+    setSelectedDate(date)
+
+    // Clear a previously chosen slot if it doesn't belong to the newly
+    // selected date, so the form can't submit a stale collection window.
+    const selectedSlot = availability.find(
+      (slot) => slot.id === selectedAvailabilityId,
+    )
+    if (selectedSlot?.date.slice(0, 10) !== date) onSelect('')
+  }
+
+  return (
+    <div className="divide-y divide-(--line) border-t border-(--line) bg-(--foam)">
+      <div className="flex gap-3 px-5 py-5 sm:px-6">
+        <RotateCcw
+          aria-hidden="true"
+          className="mt-0.5 shrink-0 text-(--lagoon-deep)"
+          size={20}
+        />
+        <div className="min-w-0 flex-1">
+          <h3 className="font-semibold">Return by</h3>
+          <p className="mt-1 text-xs leading-5 text-(--sea-ink-soft)">
+            Tell the Approver when you plan to bring the item back.
+          </p>
+          <label className="mt-3 block max-w-sm text-sm font-semibold">
+            <span className="sr-only">Return by date and time</span>
+            <Input
+              type="datetime-local"
+              required
+              value={requestedReturnAt}
+              min={new Date().toISOString().slice(0, 16)}
+              onChange={(event) =>
+                onRequestedReturnAtChange(event.target.value)
+              }
+              className="mt-2 h-11 bg-white text-(--sea-ink) [color-scheme:light]"
+            />
+          </label>
+        </div>
+      </div>
+      <div className="flex gap-3 px-5 py-5 sm:px-6">
+        <Clock3
+          aria-hidden="true"
+          className="mt-0.5 shrink-0 text-(--lagoon-deep)"
+          size={20}
+        />
+        <div className="min-w-0 flex-1">
+          <h3 className="font-semibold">Collection window</h3>
+          <p className="mt-1 text-xs leading-5 text-(--sea-ink-soft)">
+            Tell the Approver when you would like to collect the item.
+          </p>
+          {isLoading ? (
+            <p className="mt-4 text-sm text-(--sea-ink-soft)">
+              Loading collection windows…
+            </p>
+          ) : isError ? (
+            <p role="alert" className="mt-4 text-sm text-red-700">
+              Collection windows could not be loaded. Please try again.
+            </p>
+          ) : availability.length ? (
+            <>
+              <div className="mt-5 max-w-lg rounded-xl border border-(--line) bg-white p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    className="inline-flex size-8 items-center justify-center rounded-lg border border-(--line) hover:bg-(--foam)"
+                    onClick={() =>
+                      setWeekStart((current) => addDays(current, -7))
+                    }
+                    aria-label="Previous week"
+                  >
+                    <ChevronLeft aria-hidden="true" size={17} />
+                  </button>
+                  <p className="text-sm font-semibold">
+                    {formatWeekRange(days[0]!, days[6]!)}
+                  </p>
+                  <button
+                    type="button"
+                    className="inline-flex size-8 items-center justify-center rounded-lg border border-(--line) hover:bg-(--foam)"
+                    onClick={() =>
+                      setWeekStart((current) => addDays(current, 7))
+                    }
+                    aria-label="Next week"
+                  >
+                    <ChevronRight aria-hidden="true" size={17} />
+                  </button>
+                </div>
+                <div className="mt-3 grid grid-cols-7 gap-1">
+                  {days.map((day) => {
+                    const value = dateValue(day)
+                    const windowCount = availability.filter(
+                      (slot) => slot.date.slice(0, 10) === value,
+                    ).length
+                    const hasWindows = windowCount > 0
+                    const selected = value === selectedDate
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        disabled={!hasWindows}
+                        aria-pressed={selected}
+                        onClick={() => selectDate(value)}
+                        aria-label={`${formatCollectionDate(value)}: ${windowCount} collection windows`}
+                        className={`flex min-h-14 flex-col items-center justify-center rounded-lg text-xs font-semibold ${selected ? 'bg-(--lagoon-deep) text-white' : hasWindows ? 'bg-(--foam) text-(--sea-ink) hover:bg-[rgba(79,184,178,0.16)]' : 'bg-(--foam) text-(--sea-ink-soft) opacity-40'}`}
+                      >
+                        <span
+                          className={`text-[10px] uppercase ${selected ? 'text-white/80' : 'text-(--sea-ink-soft)'}`}
+                        >
+                          {new Intl.DateTimeFormat('en-US', {
+                            weekday: 'short',
+                          }).format(day)}
+                        </span>
+                        <span className="mt-1 text-sm">{day.getDate()}</span>
+                        {hasWindows && (
+                          <span
+                            className="mt-1 flex gap-0.5"
+                            aria-hidden="true"
+                          >
+                            {Array.from({
+                              length: Math.min(windowCount, 3),
+                            }).map((_, index) => (
+                              <span
+                                key={index}
+                                className={`size-1.5 rounded-full ${selected ? 'bg-white' : 'bg-(--lagoon-deep)'}`}
+                              />
+                            ))}
+                          </span>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="mt-3 flex items-center gap-2 text-xs text-(--sea-ink-soft)">
+                  <span className="size-1.5 rounded-full bg-(--lagoon-deep)" />
+                  Select a highlighted date to see its collection windows.
+                </p>
+              </div>
+              <div className="mt-5 space-y-5">
+                {selectedDate ? (
+                  <section>
+                    <h4 className="text-sm font-semibold text-(--sea-ink-soft)">
+                      Collection windows for{' '}
+                      {formatCollectionDate(selectedDate)}
+                    </h4>
+                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                      {selectedWindows.map((slot) => {
+                        const selected = selectedAvailabilityId === slot.id
+                        return (
+                          <button
+                            key={slot.id}
+                            type="button"
+                            aria-pressed={selected}
+                            onClick={() => onSelect(slot.id)}
+                            className={`rounded-xl border px-4 py-3 text-left text-sm shadow-sm transition-all hover:-translate-y-0.5 ${selected ? 'border-(--lagoon-deep) bg-(--header-bg) text-white shadow-md' : 'border-(--line) bg-white hover:border-(--lagoon-deep) hover:bg-(--sand)'}`}
+                          >
+                            <span className="block font-semibold">
+                              {formatCollectionTime(slot.start_time)}–
+                              {formatCollectionTime(slot.end_time)}
+                            </span>
+                            <span
+                              className={`mt-1 block text-xs ${selected ? 'text-white/80' : 'text-(--sea-ink-soft)'}`}
+                            >
+                              {slot.user_email}
+                            </span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </section>
+                ) : (
+                  <p className="text-sm text-(--sea-ink-soft)">
+                    Select a date with a dot to see its collection windows.
+                  </p>
+                )}
+              </div>
+            </>
+          ) : (
+            <p className="mt-4 text-sm text-(--sea-ink-soft)">
+              No upcoming collection windows are available yet. Please check
+              back after an Approver adds availability.
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function formatCollectionTime(value: string) {
+  return new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(`1970-01-01T${value}`))
+}
+
+function todayDateValue() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
+function dateValue(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+function startOfWeek(date: Date) {
+  const result = new Date(date)
+  result.setHours(0, 0, 0, 0)
+  result.setDate(result.getDate() - result.getDay())
+  return result
+}
+
+function addDays(date: Date, count: number) {
+  const result = new Date(date)
+  result.setDate(result.getDate() + count)
+  return result
+}
+
+function formatCollectionDate(value: string) {
+  return new Intl.DateTimeFormat('en-US', {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date(`${value}T12:00:00`))
+}
+
+function formatWeekRange(start: Date, end: Date) {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+  })
+  return `${formatter.format(start)}–${new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(end)}`
 }
 
 function Confirmation({

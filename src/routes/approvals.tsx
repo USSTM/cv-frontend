@@ -174,6 +174,9 @@ function ApprovalsPage() {
                   approving={view === 'pending' && approvingId === request.id}
                   pending={request.status === 'pending'}
                   availability={ownAvailability}
+                  preferredAvailability={availability.data?.find(
+                    (slot) => slot.id === request.preferred_availability_id,
+                  )}
                   isSubmitting={review.isPending}
                   error={review.error?.message}
                   onToggle={() =>
@@ -282,7 +285,8 @@ function AvailabilityPanel({
   )
 
   function addAvailability() {
-    if (!date || date < today || timeSlotIds.length === 0) return
+    if (!date || date < today || isWeekendDate(date) || timeSlotIds.length === 0)
+      return
     createAvailability.mutate(
       { date, timeSlotIds },
       {
@@ -338,15 +342,17 @@ function AvailabilityPanel({
             const value = dateValue(day)
             const selected = value === date
             const isPast = value < today
+            const isWeekendDay = isWeekend(day)
+            const disabled = isPast || isWeekendDay
             const available = availability.some((slot) => slot.date === value)
             return (
               <button
                 key={value}
                 type="button"
                 onClick={() => setDate(value)}
-                disabled={isPast}
+                disabled={disabled}
                 aria-pressed={selected}
-                className={`relative flex min-h-14 flex-col items-center justify-center rounded-lg text-xs font-semibold ${selected ? 'bg-(--lagoon-deep) text-white' : isPast ? 'bg-white text-(--sea-ink-soft) opacity-40' : 'bg-white text-(--sea-ink)'}`}
+                className={`relative flex min-h-14 flex-col items-center justify-center rounded-lg text-xs font-semibold ${selected ? 'bg-(--lagoon-deep) text-white' : disabled ? 'bg-white text-(--sea-ink-soft) opacity-40' : 'bg-white text-(--sea-ink)'}`}
               >
                 <span className="text-[10px] uppercase opacity-70">
                   {new Intl.DateTimeFormat('en-US', {
@@ -414,7 +420,12 @@ function AvailabilityPanel({
             </p>
           )}
         </div>
-        {timeSlots.isPending ? (
+        {isWeekendDate(date) ? (
+          <p className="mt-2 text-sm text-(--sea-ink-soft)">
+            Collection windows can’t be scheduled on weekends. Choose a
+            weekday.
+          </p>
+        ) : timeSlots.isPending ? (
           <p className="mt-2 text-sm text-(--sea-ink-soft)">
             Loading time slots…
           </p>
@@ -482,6 +493,7 @@ function AvailabilityPanel({
             disabled={
               !date ||
               date < today ||
+              isWeekendDate(date) ||
               !hasValidRange ||
               timeSlotIds.length === 0 ||
               createAvailability.isPending
@@ -523,6 +535,16 @@ function formatAvailabilityTime(value: string) {
   }).format(new Date(`1970-01-01T${value}`))
 }
 
+function formatReturnBy(value: string) {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(value))
+}
+
 function timeValue(value: string) {
   const [hours, minutes] = value.split(':').map(Number)
   return hours * 60 + minutes
@@ -530,6 +552,15 @@ function timeValue(value: string) {
 
 function dateValue(value: Date) {
   return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`
+}
+
+function isWeekend(value: Date) {
+  const day = value.getDay()
+  return day === 0 || day === 6
+}
+
+function isWeekendDate(value: string) {
+  return isWeekend(new Date(`${value}T00:00:00`))
 }
 
 function startOfWeek(value: Date) {
@@ -559,6 +590,7 @@ function RequestRow({
   approving,
   pending,
   availability,
+  preferredAvailability,
   isSubmitting,
   error,
   onToggle,
@@ -577,6 +609,12 @@ function RequestRow({
     start_time: string
     end_time: string
   }>
+  preferredAvailability?: {
+    id: string
+    date: string
+    start_time: string
+    end_time: string
+  }
   isSubmitting: boolean
   error?: string
   onToggle: () => void
@@ -628,6 +666,24 @@ function RequestRow({
                   {request.group_name ?? request.group_id}
                 </dd>
               </div>
+              {preferredAvailability && (
+                <div>
+                  <dt className="font-semibold">Preferred collection time</dt>
+                  <dd className="mt-1 text-(--sea-ink-soft)">
+                    {formatAvailabilityDate(preferredAvailability.date)} ·{' '}
+                    {formatAvailabilityTime(preferredAvailability.start_time)}–
+                    {formatAvailabilityTime(preferredAvailability.end_time)}
+                  </dd>
+                </div>
+              )}
+              {request.requested_return_at && (
+                <div>
+                  <dt className="font-semibold">Return by</dt>
+                  <dd className="mt-1 text-(--sea-ink-soft)">
+                    {formatReturnBy(request.requested_return_at)}
+                  </dd>
+                </div>
+              )}
             </dl>
             {!pending ? (
               <p className="rounded-xl border border-(--line) bg-white p-4 text-sm text-(--sea-ink-soft)">
@@ -636,6 +692,7 @@ function RequestRow({
             ) : approving ? (
               <ApprovalForm
                 availability={availability}
+                preferredAvailability={preferredAvailability}
                 isSubmitting={isSubmitting}
                 error={error}
                 onApprove={onApprove}
@@ -751,6 +808,7 @@ function DenyRequestDialog({
 
 function ApprovalForm({
   availability,
+  preferredAvailability,
   isSubmitting,
   error,
   onApprove,
@@ -762,12 +820,23 @@ function ApprovalForm({
     start_time: string
     end_time: string
   }>
+  preferredAvailability?: {
+    id: string
+    date: string
+    start_time: string
+    end_time: string
+  }
   isSubmitting: boolean
   error?: string
   onApprove: (body: ApprovalBody) => void
   onCancel: () => void
 }) {
-  const [availabilityId, setAvailabilityId] = useState('')
+  const [availabilityId, setAvailabilityId] = useState(
+    preferredAvailability?.id ?? '',
+  )
+  // Only offer manual selection up front when the Member didn't already
+  // choose a collection window during checkout.
+  const [pickingManually, setPickingManually] = useState(!preferredAvailability)
   const today = useMemo(() => dateValue(new Date()), [])
   const upcomingAvailability = useMemo(
     () => availability.filter((slot) => slot.date >= today),
@@ -794,24 +863,62 @@ function ApprovalForm({
         All booking fields are required to approve a Request.
       </p>
       <div className="mt-4 space-y-3">
-        <label className="block text-sm font-medium">
-          Your availability
-          <select
-            required
-            name="availability_id"
-            value={availabilityId}
-            onChange={(event) => setAvailabilityId(event.target.value)}
-            disabled={isSubmitting}
-            className="mt-1 w-full rounded-lg border border-(--line) bg-white px-3 py-2"
-          >
-            <option value="">Select a collection window</option>
-            {upcomingAvailability.map((slot) => (
-              <option key={slot.id} value={slot.id}>
-                {slot.date} · {slot.start_time}–{slot.end_time}
-              </option>
-            ))}
-          </select>
-        </label>
+        {preferredAvailability && !pickingManually ? (
+          <div>
+            <p className="text-sm font-medium">Collection window</p>
+            <div className="mt-1 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-(--line) bg-(--foam) px-3 py-2">
+              <span className="text-sm text-(--sea-ink)">
+                {formatAvailabilityDate(preferredAvailability.date)} ·{' '}
+                {formatAvailabilityTime(preferredAvailability.start_time)}–
+                {formatAvailabilityTime(preferredAvailability.end_time)}
+              </span>
+              <span className="shrink-0 text-xs font-semibold text-(--lagoon-deep)">
+                Member’s pick
+              </span>
+            </div>
+            <button
+              type="button"
+              className="mt-1.5 text-xs font-semibold text-(--lagoon-deep)"
+              onClick={() => {
+                setPickingManually(true)
+                setAvailabilityId('')
+              }}
+            >
+              Use a different window instead
+            </button>
+          </div>
+        ) : (
+          <label className="block text-sm font-medium">
+            Your availability
+            <select
+              required
+              name="availability_id"
+              value={availabilityId}
+              onChange={(event) => setAvailabilityId(event.target.value)}
+              disabled={isSubmitting}
+              className="mt-1 w-full rounded-lg border border-(--line) bg-white px-3 py-2"
+            >
+              <option value="">Select a collection window</option>
+              {upcomingAvailability.map((slot) => (
+                <option key={slot.id} value={slot.id}>
+                  {slot.date} · {slot.start_time}–{slot.end_time}
+                </option>
+              ))}
+            </select>
+            {preferredAvailability && (
+              <button
+                type="button"
+                className="mt-1.5 block text-xs font-semibold text-(--lagoon-deep)"
+                onClick={() => {
+                  setPickingManually(false)
+                  setAvailabilityId(preferredAvailability.id)
+                }}
+              >
+                Use the Member’s requested window instead
+              </button>
+            )}
+          </label>
+        )}
         <label className="block text-sm font-medium">
           Pickup location
           <input
