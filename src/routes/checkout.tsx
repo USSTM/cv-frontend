@@ -21,7 +21,6 @@ import {
   type CheckoutCartResponse,
   type ItemType,
 } from '@/api/generated/types.gen'
-import { uploadPreCheckoutConditionImage } from '@/api/catalog'
 import { ApiError } from '@/api/client'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -72,12 +71,10 @@ function CheckoutPage() {
   const cart = cartQuery.data ?? []
   const [dueDate, setDueDate] = useState('')
   const [condition, setCondition] = useState<Condition>('good')
-  const [conditionPhoto, setConditionPhoto] = useState<File | null>(null)
   const [preferredAvailabilityId, setPreferredAvailabilityId] = useState('')
   const [requestedReturnAt, setRequestedReturnAt] = useState('')
   const [result, setResult] = useState<CheckoutCartResponse | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
   const groupedCart = useMemo(
     () =>
       sections.map((section) => ({
@@ -103,9 +100,8 @@ function CheckoutPage() {
   const itemCount = cart.reduce((total, item) => total + item.quantity, 0)
   const canSubmit =
     Boolean(activeGroup) &&
-    !isUploadingPhoto &&
     !checkout.isPending &&
-    (!hasBorrowing || Boolean(dueDate && conditionPhoto)) &&
+    (!hasBorrowing || Boolean(dueDate)) &&
     (!hasRequest || Boolean(preferredAvailabilityId && requestedReturnAt))
 
   async function handleSubmit() {
@@ -113,18 +109,6 @@ function CheckoutPage() {
     setSubmitError(null)
 
     try {
-      let beforeConditionUrl = ''
-      if (hasBorrowing) {
-        const firstBorrowItem = cart.find((item) => item.itemType === 'medium')
-        if (!firstBorrowItem || !conditionPhoto) return
-        setIsUploadingPhoto(true)
-        const uploaded = await uploadPreCheckoutConditionImage({
-          itemId: firstBorrowItem.itemId,
-          image: conditionPhoto,
-        }).finally(() => setIsUploadingPhoto(false))
-        beforeConditionUrl = uploaded.beforeConditionUrl
-      }
-
       const checkoutResult = await checkout.mutateAsync({
         groupId: activeGroup.id,
         // The API requires a date-time for every checkout, although it ignores
@@ -133,7 +117,7 @@ function CheckoutPage() {
           ? `${dueDate}T12:00:00.000Z`
           : new Date().toISOString(),
         beforeCondition: condition,
-        beforeConditionUrl,
+        beforeConditionUrl: '',
         preferredAvailabilityId: preferredAvailabilityId || undefined,
         requestedReturnAt: requestedReturnAt
           ? new Date(requestedReturnAt).toISOString()
@@ -249,10 +233,8 @@ function CheckoutPage() {
                     <BorrowingDetails
                       dueDate={dueDate}
                       condition={condition}
-                      conditionPhoto={conditionPhoto}
                       onDueDateChange={setDueDate}
                       onConditionChange={setCondition}
-                      onPhotoChange={setConditionPhoto}
                     />
                   )}
                   {section.type === 'high' && (
@@ -317,21 +299,12 @@ function CheckoutPage() {
               disabled={!canSubmit}
               onClick={handleSubmit}
             >
-              {isUploadingPhoto
-                ? 'Uploading photo…'
-                : checkout.isPending
-                  ? 'Submitting…'
-                  : 'Submit checkout'}{' '}
+              {checkout.isPending ? 'Submitting…' : 'Submit checkout'}{' '}
               <Send aria-hidden="true" size={16} />
             </Button>
             {hasBorrowing && !dueDate && (
               <p className="mt-3 text-center text-xs leading-5 text-(--sea-ink-soft)">
                 Choose a return due date to submit.
-              </p>
-            )}
-            {hasBorrowing && !conditionPhoto && (
-              <p className="mt-3 text-center text-xs leading-5 text-(--sea-ink-soft)">
-                Attach a condition photo to submit.
               </p>
             )}
             {hasRequest && !preferredAvailabilityId && (
@@ -354,17 +327,13 @@ function CheckoutPage() {
 function BorrowingDetails({
   dueDate,
   condition,
-  conditionPhoto,
   onDueDateChange,
   onConditionChange,
-  onPhotoChange,
 }: {
   dueDate: string
   condition: Condition
-  conditionPhoto: File | null
   onDueDateChange: (value: string) => void
   onConditionChange: (value: Condition) => void
-  onPhotoChange: (file: File | null) => void
 }) {
   return (
     <div className="border-t border-(--line) bg-(--foam) px-5 py-5 sm:px-6">
@@ -418,22 +387,6 @@ function BorrowingDetails({
               </Select>
             </label>
           </div>
-          <label className="mt-4 block text-sm font-semibold">
-            Condition photo
-            <input
-              type="file"
-              accept="image/*"
-              className="mt-2 block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-(--header-bg) file:px-3 file:py-2 file:font-semibold file:text-white"
-              onChange={(event) =>
-                onPhotoChange(event.target.files?.[0] ?? null)
-              }
-            />
-          </label>
-          {conditionPhoto && (
-            <p className="mt-2 text-sm font-medium text-emerald-700">
-              {conditionPhoto.name} attached
-            </p>
-          )}
         </div>
       </div>
     </div>
