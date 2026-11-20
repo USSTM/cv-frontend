@@ -26,6 +26,8 @@ import {
   roleLabelForMember,
 } from '@/lib/member-access'
 
+const mobileMenuId = 'mobile-navigation-menu'
+
 export default function Header() {
   const { data: currentMember } = useCurrentMemberQuery()
   const { data: unreadNotifications } = useUnreadNotificationCountQuery(
@@ -39,6 +41,7 @@ export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const menuButtonRef = useRef<HTMLButtonElement>(null)
   const profileRef = useRef<HTMLDivElement>(null)
   const navigation = currentMember
     ? navigationForMember(currentMember, activeGroup)
@@ -88,25 +91,39 @@ export default function Header() {
     }
   }, [menuOpen, profileOpen])
 
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key !== 'Escape' || !menuOpen) return
+
+      event.preventDefault()
+      setMenuOpen(false)
+      menuButtonRef.current?.focus()
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [menuOpen])
+
   return (
     <header className="sticky top-0 z-50 w-full bg-(--header-bg) text-white shadow-md">
-      <nav className="mx-auto flex h-16 w-full max-w-[1440px] items-center justify-between px-0 sm:px-2 lg:px-4">
-        <div className="flex items-center gap-4">
-          <span
-            className="flex items-center gap-3 text-2xl font-bold text-white no-underline transition-colors duration-300 hover:text-white"
-          >
+      <nav className="mx-auto flex h-16 w-full max-w-[1440px] items-center justify-between px-2 sm:px-3 lg:px-4">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-4">
+          <span className="flex min-w-0 items-center gap-2 text-white no-underline transition-colors duration-300 hover:text-white sm:gap-3">
             <img
               src="/usstm-white.png"
               alt="USSTM"
               className="h-10 w-auto shrink-0"
             />
-            USSTM Campus Vault
+            <span className="truncate text-lg font-bold sm:text-xl lg:text-2xl">
+              <span className="lg:hidden">Campus Vault</span>
+              <span className="hidden lg:inline">USSTM Campus Vault</span>
+            </span>
           </span>
           {currentMember && (
-            <div className="hidden h-10 border-l border-white/30 md:block" />
+            <div className="hidden h-10 border-l border-white/30 lg:block" />
           )}
           {currentMember && (
-            <div className="hidden items-center gap-2 md:flex">
+            <div className="hidden items-center gap-2 lg:flex">
               {navigation.map((item) => (
                 <Link
                   key={item.label}
@@ -139,7 +156,7 @@ export default function Header() {
         </div>
 
         {currentMember && (
-          <div className="hidden items-center gap-4 md:flex">
+          <div className="hidden items-center gap-4 lg:flex">
             {activeGroup && (
               <label className="flex items-center gap-2 text-xs font-semibold text-white/80">
                 <span className="sr-only">Active Group</span>
@@ -236,22 +253,29 @@ export default function Header() {
         )}
 
         <div
-          className="relative flex items-center gap-1 md:hidden"
+          className="relative flex shrink-0 items-center gap-1 lg:hidden"
           ref={menuRef}
         >
           {currentMember && <NotificationLink unreadCount={unreadCount} />}
           <button
+            ref={menuButtonRef}
             type="button"
             onClick={() => setMenuOpen((open) => !open)}
             className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/20 text-[var(--color-background)] transition hover:bg-white/10"
             aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-controls={currentMember ? mobileMenuId : undefined}
             aria-expanded={menuOpen}
           >
             {menuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
 
           {menuOpen && currentMember && (
-            <div className="absolute right-0 top-12 w-64 rounded-lg border border-(--line) bg-(--color-background) py-2 text-(--header-bg) shadow-lg">
+            <div
+              id={mobileMenuId}
+              role="navigation"
+              aria-label="Mobile navigation"
+              className="absolute right-0 top-12 w-64 rounded-lg border border-(--line) bg-(--color-background) py-2 text-(--header-bg) shadow-lg"
+            >
               {groups.length > 1 && activeGroup && (
                 <label className="block px-4 py-2 text-xs font-semibold text-(--sea-ink-soft)">
                   Active Group
