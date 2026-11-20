@@ -44,6 +44,8 @@ export const Route = createFileRoute('/checkout')({
 
 type Condition = 'unusable' | 'damaged' | 'decent' | 'good' | 'pristine'
 
+const COLLECTION_WINDOWS_PER_PAGE = 6
+
 const sections: Array<{ type: ItemType; title: string; description: string }> =
   [
     {
@@ -465,6 +467,7 @@ function RequestedCollectionTime({
 }) {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()))
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [windowPage, setWindowPage] = useState(0)
   const days = useMemo(
     () => Array.from({ length: 7 }, (_, index) => addDays(weekStart, index)),
     [weekStart],
@@ -492,9 +495,19 @@ function RequestedCollectionTime({
     () => windowsByDate.find(([date]) => date === selectedDate)?.[1] ?? [],
     [windowsByDate, selectedDate],
   )
+  const windowPageCount = Math.max(
+    1,
+    Math.ceil(selectedWindows.length / COLLECTION_WINDOWS_PER_PAGE),
+  )
+  const currentWindowPage = Math.min(windowPage, windowPageCount - 1)
+  const visibleWindows = selectedWindows.slice(
+    currentWindowPage * COLLECTION_WINDOWS_PER_PAGE,
+    (currentWindowPage + 1) * COLLECTION_WINDOWS_PER_PAGE,
+  )
 
   function selectDate(date: string) {
     setSelectedDate(date)
+    setWindowPage(0)
 
     // Clear a previously chosen slot if it doesn't belong to the newly
     // selected date, so the form can't submit a stale collection window.
@@ -637,7 +650,7 @@ function RequestedCollectionTime({
                       {formatCollectionDate(selectedDate)}
                     </h4>
                     <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                      {selectedWindows.map((slot) => {
+                      {visibleWindows.map((slot) => {
                         const selected = selectedAvailabilityId === slot.id
                         return (
                           <button
@@ -660,6 +673,37 @@ function RequestedCollectionTime({
                         )
                       })}
                     </div>
+                    {selectedWindows.length > COLLECTION_WINDOWS_PER_PAGE && (
+                      <div className="mt-3 flex items-center justify-between gap-3">
+                        <button
+                          type="button"
+                          className="inline-flex h-9 items-center gap-1 rounded-lg border border-(--line) px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40 hover:bg-(--foam)"
+                          disabled={currentWindowPage === 0}
+                          onClick={() =>
+                            setWindowPage((current) => Math.max(current - 1, 0))
+                          }
+                        >
+                          <ChevronLeft aria-hidden="true" size={16} />
+                          Previous
+                        </button>
+                        <p className="text-xs text-(--sea-ink-soft)">
+                          Page {currentWindowPage + 1} of {windowPageCount}
+                        </p>
+                        <button
+                          type="button"
+                          className="inline-flex h-9 items-center gap-1 rounded-lg border border-(--line) px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40 hover:bg-(--foam)"
+                          disabled={currentWindowPage === windowPageCount - 1}
+                          onClick={() =>
+                            setWindowPage((current) =>
+                              Math.min(current + 1, windowPageCount - 1),
+                            )
+                          }
+                        >
+                          Next
+                          <ChevronRight aria-hidden="true" size={16} />
+                        </button>
+                      </div>
+                    )}
                   </section>
                 ) : (
                   <p className="text-sm text-(--sea-ink-soft)">
