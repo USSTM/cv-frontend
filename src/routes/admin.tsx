@@ -1021,7 +1021,7 @@ function GlobalEditor({
   })
   return (
     <Dialog open={Boolean(member)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-xl">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Edit member roles</DialogTitle>
           <DialogDescription>
