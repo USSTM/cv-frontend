@@ -318,7 +318,7 @@ function AvailabilityPanel({
           <Button
             type="button"
             variant="outline"
-            className="size-8 p-0"
+            className="size-11 p-0"
             onClick={() => setWeekStart((current) => addDays(current, -7))}
             aria-label="Previous week"
           >
@@ -330,7 +330,7 @@ function AvailabilityPanel({
           <Button
             type="button"
             variant="outline"
-            className="size-8 p-0"
+            className="size-11 p-0"
             onClick={() => setWeekStart((current) => addDays(current, 7))}
             aria-label="Next week"
           >
@@ -403,7 +403,7 @@ function AvailabilityPanel({
                   ) : (
                     <button
                       type="button"
-                      className="ml-0.5 inline-flex size-5 items-center justify-center rounded-full hover:bg-[rgba(79,184,178,0.28)]"
+                      className="ml-0.5 inline-flex size-11 items-center justify-center rounded-full hover:bg-[rgba(79,184,178,0.28)]"
                       onClick={() => deleteAvailability.mutate(slot.id)}
                       disabled={deleteAvailability.isPending}
                       aria-label={`Remove ${formatAvailabilityTime(slot.start_time)} availability`}

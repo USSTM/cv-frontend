@@ -1307,7 +1307,7 @@ function CatalogItemForm({
                       type="button"
                       variant="outline"
                       size="icon"
-                      className="absolute -right-2 -top-2 size-6 border-red-200 bg-white p-0 text-red-700 opacity-0 shadow-sm transition-opacity hover:bg-red-50 group-hover/image:opacity-100 group-focus-within/image:opacity-100"
+                      className="absolute -right-3 -top-3 size-11 border-red-200 bg-white p-0 text-red-700 shadow-sm hover:bg-red-50"
                       aria-label="Remove Catalog item image"
                       onClick={() =>
                         deleteImage.mutate({ itemId, imageId: image.id })

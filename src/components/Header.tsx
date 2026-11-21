@@ -339,6 +339,27 @@ export default function Header() {
                   )}
                 </Link>
               ))}
+              <div className="mt-1 border-t border-(--line) pt-2">
+                <div className="px-4 py-2">
+                  <p className="truncate text-sm font-semibold text-(--header-bg)">
+                    {currentMember.email}
+                  </p>
+                  <p className="mt-0.5 text-xs font-medium text-(--sea-ink-soft)">
+                    {roleLabelForMember(currentMember, activeGroup)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="flex min-h-11 w-full items-center gap-2 px-4 py-2 text-left transition-colors duration-300 hover:bg-(--highlight-blue) hover:text-(--header-bg)"
+                  onClick={() => {
+                    handleSignOut()
+                    setMenuOpen(false)
+                  }}
+                >
+                  <LogOut size={18} aria-hidden="true" />
+                  Log out
+                </button>
+              </div>
             </div>
           )}
           {!currentMember && (

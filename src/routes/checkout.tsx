@@ -517,7 +517,7 @@ function RequestedCollectionTime({
           <p className="mt-1 text-xs leading-5 text-(--sea-ink-soft)">
             Tell the Approver when you plan to bring the item back.
           </p>
-          <label className="mt-3 block max-w-sm text-sm font-semibold">
+          <label className="mt-3 block w-full min-w-0 max-w-sm text-sm font-semibold">
             <span className="sr-only">Return by date and time</span>
             <Input
               type="datetime-local"
@@ -527,7 +527,8 @@ function RequestedCollectionTime({
               onChange={(event) =>
                 onRequestedReturnAtChange(event.target.value)
               }
-              className="mt-2 h-11 bg-white text-(--sea-ink) [color-scheme:light]"
+              onClick={(event) => event.currentTarget.showPicker()}
+              className="mt-2 box-border h-11 w-full min-w-0 max-w-full [field-sizing:fixed] [inline-size:100%] [max-inline-size:100%] [min-inline-size:0] bg-white text-(--sea-ink) [color-scheme:light]"
             />
           </label>
         </div>
@@ -557,7 +558,7 @@ function RequestedCollectionTime({
                 <div className="flex items-center justify-between gap-3">
                   <button
                     type="button"
-                    className="inline-flex size-8 items-center justify-center rounded-lg border border-(--line) hover:bg-(--foam)"
+                    className="inline-flex size-11 items-center justify-center rounded-lg border border-(--line) hover:bg-(--foam)"
                     onClick={() =>
                       setWeekStart((current) => addDays(current, -7))
                     }
@@ -570,7 +571,7 @@ function RequestedCollectionTime({
                   </p>
                   <button
                     type="button"
-                    className="inline-flex size-8 items-center justify-center rounded-lg border border-(--line) hover:bg-(--foam)"
+                    className="inline-flex size-11 items-center justify-center rounded-lg border border-(--line) hover:bg-(--foam)"
                     onClick={() =>
                       setWeekStart((current) => addDays(current, 7))
                     }
