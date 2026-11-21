@@ -50,6 +50,7 @@ export const Route = createFileRoute('/activity')({
   component: ActivityPage,
 })
 type ActivityView = 'bookings' | 'borrowings' | 'requests'
+type MemberRequest = RequestItemResponse & { denial_reason?: string | null }
 
 function ActivityPage() {
   const [view, setView] = useState<ActivityView>('bookings')
@@ -66,7 +67,7 @@ function ActivityPage() {
   const filteredBorrowings = (borrowings.data?.data ?? []).filter(
     (entry) => !activeGroup || entry.group_id === activeGroup.id,
   )
-  const filteredRequests = (requests.data ?? []).filter(
+  const filteredRequests: MemberRequest[] = (requests.data ?? []).filter(
     (entry) => !activeGroup || entry.group_id === activeGroup.id,
   )
   const entries = {
@@ -344,7 +345,7 @@ function RequestsList({
   entries,
   itemNames,
 }: {
-  entries: RequestItemResponse[]
+  entries: MemberRequest[]
   itemNames: Map<string, string>
 }) {
   return entries.length ? (
@@ -354,7 +355,11 @@ function RequestsList({
           key={entry.id}
           title={itemNames.get(entry.item_id) ?? 'Catalog item'}
           status={entry.status}
-          detail={`Quantity: ${entry.quantity} · Submitted request`}
+          detail={
+            entry.status === 'denied' && entry.denial_reason
+              ? `Quantity: ${entry.quantity} · Denial reason: ${entry.denial_reason}`
+              : `Quantity: ${entry.quantity} · Submitted request`
+          }
           date={
             entry.reviewed_at
               ? `Reviewed ${formatDate(entry.reviewed_at)}`

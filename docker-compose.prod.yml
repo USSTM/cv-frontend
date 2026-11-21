@@ -14,11 +14,11 @@ services:
         environment:
             PORT: 3000
         networks:
-            portal_shared:
+            edge:
                 aliases:
                     - cv-frontend-app
 
 networks:
-    portal_shared:
-        name: usstm-portal-production_application
+    edge:
+        name: usstm-edge
         external: true

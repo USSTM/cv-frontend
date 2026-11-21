@@ -9,7 +9,7 @@ import {
   UsersRound,
   X,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import {
   useCreateGroupMutation,
@@ -72,6 +72,8 @@ type AdminView = 'members' | 'groups' | 'catalog'
 type ManagedMember = { id: string; email: string; role: string }
 type AdminScope = 'global' | 'group'
 type CatalogItemDraft = Omit<ItemPostRequest, 'id' | 'urls'>
+type CatalogImageChanges = { uploads: File[]; removedImageIds: string[] }
+type PendingCatalogImage = { file: File; previewUrl: string }
 
 const emptyCatalogItem: CatalogItemDraft = {
   name: '',
@@ -128,6 +130,8 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
   const createCatalogItem = useCreateCatalogItemMutation()
   const updateCatalogItem = useUpdateCatalogItemMutation()
   const deleteCatalogItem = useDeleteCatalogItemMutation()
+  const uploadCatalogItemImage = useUploadCatalogItemImageMutation()
+  const deleteCatalogItemImage = useDeleteCatalogItemImageMutation()
   const uploadGroupLogo = useUploadGroupLogoMutation()
   const title = isGlobalAdmin ? 'Global administration' : 'Group administration'
 
@@ -170,7 +174,7 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
     )
   }
 
-  function saveCatalogItem() {
+  function saveCatalogItem(imageChanges: CatalogImageChanges) {
     const input: ItemPostRequest = {
       id: catalogItemToEdit?.id ?? crypto.randomUUID(),
       name: catalogItemDraft.name.trim(),
@@ -182,7 +186,23 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
 
     const mutation = catalogItemToEdit ? updateCatalogItem : createCatalogItem
     mutation.mutate(input, {
-      onSuccess: () => {
+      onSuccess: async () => {
+        if (catalogItemToEdit) {
+          await Promise.all([
+            ...imageChanges.removedImageIds.map((imageId) =>
+              deleteCatalogItemImage.mutateAsync({
+                itemId: catalogItemToEdit.id,
+                imageId,
+              }),
+            ),
+            ...imageChanges.uploads.map((image) =>
+              uploadCatalogItemImage.mutateAsync({
+                itemId: catalogItemToEdit.id,
+                image,
+              }),
+            ),
+          ])
+        }
         setCatalogItemToEdit(null)
         setCreatingCatalogItem(false)
         setCatalogItemDraft(emptyCatalogItem)
@@ -497,17 +517,17 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
                   {catalogItems.map((item) => (
                     <li
                       key={item.id}
-                      className="flex items-center justify-between gap-4 p-4 sm:p-5"
+                      className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:p-5"
                     >
-                      <div>
-                        <p className="font-semibold text-(--sea-ink)">
+                      <div className="min-w-0">
+                        <p className="font-semibold break-words text-(--sea-ink)">
                           {item.name}
                         </p>
                         <p className="mt-1 text-sm text-(--sea-ink-soft)">
                           {item.stock} available
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0">
                         <Badge className={itemTypeClass(item.type)}>
                           {itemTypeLabels[item.type]}
                         </Badge>
@@ -517,7 +537,7 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
                               type="button"
                               variant="outline"
                               size="icon"
-                              className="border-(--line)"
+                              className="ml-auto border-(--line) sm:ml-0"
                               aria-label={`Edit ${item.name}`}
                               onClick={() => openCatalogItemEditor(item)}
                             >
@@ -556,8 +576,16 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
                     draft={catalogItemDraft}
                     onChange={setCatalogItemDraft}
                     onSubmit={saveCatalogItem}
-                    error={updateCatalogItem.error}
-                    submitting={updateCatalogItem.isPending}
+                    error={
+                      updateCatalogItem.error ??
+                      uploadCatalogItemImage.error ??
+                      deleteCatalogItemImage.error
+                    }
+                    submitting={
+                      updateCatalogItem.isPending ||
+                      uploadCatalogItemImage.isPending ||
+                      deleteCatalogItemImage.isPending
+                    }
                     submitLabel="Save changes"
                   />
                 </DialogContent>
@@ -993,7 +1021,7 @@ function GlobalEditor({
   })
   return (
     <Dialog open={Boolean(member)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-xl">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Edit member roles</DialogTitle>
           <DialogDescription>
@@ -1180,24 +1208,34 @@ function CatalogItemForm({
   itemId?: string
   draft: CatalogItemDraft
   onChange: (draft: CatalogItemDraft) => void
-  onSubmit: () => void
+  onSubmit: (imageChanges: CatalogImageChanges) => void
   error: unknown
   submitting: boolean
   submitLabel: string
 }) {
   const imagesQuery = useItemImagesQuery(itemId)
-  const uploadImage = useUploadCatalogItemImageMutation()
-  const deleteImage = useDeleteCatalogItemImageMutation()
+  const [pendingUploads, setPendingUploads] = useState<PendingCatalogImage[]>(
+    [],
+  )
+  const [removedImageIds, setRemovedImageIds] = useState<Set<string>>(new Set())
+  const previewUrls = useRef(new Set<string>())
+
+  useEffect(
+    () => () => {
+      previewUrls.current.forEach((url) => URL.revokeObjectURL(url))
+    },
+    [],
+  )
 
   function uploadImages(files: FileList | null) {
     if (!itemId || !files?.length) return
 
-    Array.from(files).forEach((image) => {
-      uploadImage.mutate({
-        itemId,
-        image,
-      })
+    const pendingImages = Array.from(files).map((file) => {
+      const previewUrl = URL.createObjectURL(file)
+      previewUrls.current.add(previewUrl)
+      return { file, previewUrl }
     })
+    setPendingUploads((current) => [...current, ...pendingImages])
   }
 
   return (
@@ -1205,7 +1243,10 @@ function CatalogItemForm({
       className="space-y-4"
       onSubmit={(event) => {
         event.preventDefault()
-        onSubmit()
+        onSubmit({
+          uploads: pendingUploads.map((image) => image.file),
+          removedImageIds: [...removedImageIds],
+        })
       }}
     >
       <div>
@@ -1278,51 +1319,93 @@ function CatalogItemForm({
           >
             Item images
           </label>
-          <Input
-            id="catalog-item-images"
-            className="mt-2 cursor-pointer file:mr-3 file:cursor-pointer file:rounded-md file:bg-(--header-bg) file:px-3 file:font-semibold file:text-white file:transition-colors hover:file:bg-(--header-bg)/80"
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={(event) => {
-              uploadImages(event.target.files)
-              event.target.value = ''
-            }}
-            disabled={uploadImage.isPending}
-          />
+          <label
+            htmlFor="catalog-item-images"
+            className="btn-inv mt-2 min-h-11 w-full justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-60"
+            aria-disabled={submitting}
+          >
+            <ImagePlus aria-hidden="true" size={18} />
+            Choose images
+            <input
+              id="catalog-item-images"
+              className="sr-only"
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(event) => {
+                uploadImages(event.target.files)
+                event.target.value = ''
+              }}
+              disabled={submitting}
+            />
+          </label>
           <p className="mt-1 text-xs text-(--sea-ink-soft)">
             Upload one or more images for this Catalog item.
           </p>
-          {imagesQuery.data && imagesQuery.data.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {imagesQuery.data.map((image) => (
-                <div key={image.id} className="group/image space-y-1">
-                  <div className="relative">
-                    <img
-                      src={image.thumbnail_url}
-                      alt="Catalog item"
-                      className="size-16 rounded-lg border border-(--line) object-cover"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="absolute -right-2 -top-2 size-6 border-red-200 bg-white p-0 text-red-700 opacity-0 shadow-sm transition-opacity hover:bg-red-50 group-hover/image:opacity-100 group-focus-within/image:opacity-100"
-                      aria-label="Remove Catalog item image"
-                      onClick={() =>
-                        deleteImage.mutate({ itemId, imageId: image.id })
-                      }
-                      disabled={deleteImage.isPending}
-                    >
-                      <X aria-hidden="true" size={14} />
-                    </Button>
-                  </div>
+          {((imagesQuery.data?.length ?? 0) > 0 ||
+            pendingUploads.length > 0) && (
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">
+              {(imagesQuery.data ?? []).map((image, index) => (
+                <div
+                  key={image.id}
+                  className={`rounded-xl border border-(--line) bg-white p-2 sm:w-32 ${removedImageIds.has(image.id) ? 'opacity-50' : ''}`}
+                >
+                  <img
+                    src={image.thumbnail_url}
+                    alt={`Catalog item image ${index + 1}`}
+                    className="aspect-square w-full rounded-lg border border-(--line) object-cover"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="mt-2 min-h-11 w-full border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
+                    onClick={() =>
+                      setRemovedImageIds((current) => {
+                        const next = new Set(current)
+                        if (next.has(image.id)) next.delete(image.id)
+                        else next.add(image.id)
+                        return next
+                      })
+                    }
+                    disabled={submitting}
+                  >
+                    <X aria-hidden="true" size={16} />
+                    {removedImageIds.has(image.id) ? 'Restore' : 'Remove'}
+                  </Button>
+                </div>
+              ))}
+              {pendingUploads.map((image, index) => (
+                <div
+                  key={`${image.file.name}-${index}`}
+                  className="rounded-xl border border-(--line) bg-white p-2 sm:w-32"
+                >
+                  <img
+                    src={image.previewUrl}
+                    alt={`New image: ${image.file.name}`}
+                    className="aspect-square w-full rounded-lg border border-(--line) object-cover"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="mt-2 min-h-11 w-full border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
+                    onClick={() => {
+                      previewUrls.current.delete(image.previewUrl)
+                      URL.revokeObjectURL(image.previewUrl)
+                      setPendingUploads((current) =>
+                        current.filter(
+                          (_, pendingIndex) => pendingIndex !== index,
+                        ),
+                      )
+                    }}
+                    disabled={submitting}
+                  >
+                    <X aria-hidden="true" size={16} />
+                    Remove
+                  </Button>
                 </div>
               ))}
             </div>
           )}
-          {uploadImage.error && <ErrorText error={uploadImage.error} />}
-          {deleteImage.error && <ErrorText error={deleteImage.error} />}
         </div>
       ) : (
         <p className="text-sm text-(--sea-ink-soft)">
@@ -1330,7 +1413,7 @@ function CatalogItemForm({
         </p>
       )}
       {error ? <ErrorText error={error} /> : null}
-      <DialogFooter>
+      <DialogFooter className="sticky bottom-0 -mx-6 -mb-6 border-t border-(--line) bg-(--color-background) px-6 py-4">
         <DialogClose asChild>
           <Button variant="outline" className="border-(--line)">
             Cancel
