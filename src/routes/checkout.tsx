@@ -506,10 +506,10 @@ function RequestedCollectionTime({
 
   return (
     <div className="divide-y divide-(--line) border-t border-(--line) bg-(--foam)">
-      <div className="flex gap-3 px-5 py-5 sm:px-6">
+      <div className="relative px-5 py-5 sm:flex sm:gap-3 sm:px-6">
         <RotateCcw
           aria-hidden="true"
-          className="mt-0.5 shrink-0 text-(--lagoon-deep)"
+          className="absolute top-5 right-5 shrink-0 text-(--lagoon-deep) sm:static sm:mt-0.5"
           size={20}
         />
         <div className="min-w-0 flex-1">
@@ -517,7 +517,7 @@ function RequestedCollectionTime({
           <p className="mt-1 text-xs leading-5 text-(--sea-ink-soft)">
             Tell the Approver when you plan to bring the item back.
           </p>
-          <label className="mt-3 block w-full min-w-0 max-w-sm text-sm font-semibold">
+          <label className="mx-auto mt-3 block w-full min-w-0 max-w-sm text-sm font-semibold sm:mx-0">
             <span className="sr-only">Return by date and time</span>
             <Input
               type="datetime-local"
@@ -533,10 +533,10 @@ function RequestedCollectionTime({
           </label>
         </div>
       </div>
-      <div className="flex gap-3 px-5 py-5 sm:px-6">
+      <div className="relative px-5 py-5 sm:flex sm:gap-3 sm:px-6">
         <Clock3
           aria-hidden="true"
-          className="mt-0.5 shrink-0 text-(--lagoon-deep)"
+          className="absolute top-5 right-5 shrink-0 text-(--lagoon-deep) sm:static sm:mt-0.5"
           size={20}
         />
         <div className="min-w-0 flex-1">
@@ -554,7 +554,7 @@ function RequestedCollectionTime({
             </p>
           ) : availability.length ? (
             <>
-              <div className="mt-5 max-w-lg rounded-xl border border-(--line) bg-white p-3">
+              <div className="mx-auto mt-5 max-w-lg rounded-xl border border-(--line) bg-white p-3 sm:mx-0">
                 <div className="flex items-center justify-between gap-3">
                   <button
                     type="button"
@@ -630,7 +630,7 @@ function RequestedCollectionTime({
                   Select a highlighted date to see its collection windows.
                 </p>
               </div>
-              <div className="mt-5 space-y-5">
+              <div className="mx-auto mt-5 max-w-lg space-y-5 sm:mx-0">
                 {selectedDate ? (
                   <section>
                     <h4 className="text-sm font-semibold text-(--sea-ink-soft)">
