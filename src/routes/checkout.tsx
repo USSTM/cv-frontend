@@ -102,13 +102,26 @@ function CheckoutPage() {
       ),
     [availability.data],
   )
+  const selectedCollectionSlot = upcomingAvailability.find(
+    (slot) => slot.id === preferredAvailabilityId,
+  )
+  // Local "YYYY-MM-DDTHH:mm", the same format a datetime-local input uses.
+  const collectionEndsAt = selectedCollectionSlot
+    ? `${selectedCollectionSlot.date.slice(0, 10)}T${selectedCollectionSlot.end_time.slice(0, 5)}`
+    : null
+  const returnBeforeCollection =
+    collectionEndsAt !== null &&
+    requestedReturnAt !== '' &&
+    new Date(requestedReturnAt) <= new Date(collectionEndsAt)
   const itemCount = cart.reduce((total, item) => total + item.quantity, 0)
   const canSubmit =
     Boolean(activeGroup) &&
     !isUploadingPhoto &&
     !checkout.isPending &&
     (!hasBorrowing || Boolean(dueDate && conditionPhoto)) &&
-    (!hasRequest || Boolean(preferredAvailabilityId && requestedReturnAt))
+    (!hasRequest ||
+      (Boolean(preferredAvailabilityId && requestedReturnAt) &&
+        !returnBeforeCollection))
 
   async function handleSubmit() {
     if (!activeGroup) return
@@ -261,6 +274,8 @@ function CheckoutPage() {
                     <RequestedCollectionTime
                       selectedAvailabilityId={preferredAvailabilityId}
                       requestedReturnAt={requestedReturnAt}
+                      collectionEndsAt={collectionEndsAt}
+                      returnBeforeCollection={returnBeforeCollection}
                       availability={upcomingAvailability}
                       isLoading={availability.isLoading}
                       isError={availability.isError}
@@ -346,6 +361,11 @@ function CheckoutPage() {
                 Choose when you will return your Request Item.
               </p>
             )}
+            {hasRequest && returnBeforeCollection && (
+              <p className="mt-3 text-center text-xs leading-5 text-red-700">
+                Choose a return time after your collection window ends.
+              </p>
+            )}
           </aside>
         </div>
       </section>
@@ -388,7 +408,7 @@ function BorrowingDetails({
                 className="mt-2 h-11 cursor-pointer border-(--line) bg-(--sand) text-(--sea-ink) [color-scheme:light]"
                 type="date"
                 value={dueDate}
-                min={new Date().toISOString().slice(0, 10)}
+                min={todayDateValue()}
                 onChange={(event) => onDueDateChange(event.target.value)}
                 onClick={(event) => event.currentTarget.showPicker?.()}
               />
@@ -445,6 +465,8 @@ function BorrowingDetails({
 function RequestedCollectionTime({
   selectedAvailabilityId,
   requestedReturnAt,
+  collectionEndsAt,
+  returnBeforeCollection,
   availability,
   isLoading,
   isError,
@@ -453,6 +475,8 @@ function RequestedCollectionTime({
 }: {
   selectedAvailabilityId: string
   requestedReturnAt: string
+  collectionEndsAt: string | null
+  returnBeforeCollection: boolean
   availability: Array<{
     id: string
     date: string
@@ -536,13 +560,26 @@ function RequestedCollectionTime({
               type="datetime-local"
               required
               value={requestedReturnAt}
-              min={new Date().toISOString().slice(0, 16)}
+              min={collectionEndsAt ?? localDateTimeValue(new Date())}
+              aria-invalid={returnBeforeCollection}
+              aria-describedby={
+                returnBeforeCollection ? 'return-before-collection' : undefined
+              }
               onChange={(event) =>
                 onRequestedReturnAtChange(event.target.value)
               }
               className="mt-2 h-11 bg-white text-(--sea-ink) [color-scheme:light]"
             />
           </label>
+          {returnBeforeCollection && (
+            <p
+              id="return-before-collection"
+              role="alert"
+              className="mt-2 text-xs text-red-700"
+            >
+              Return time must be after your collection window ends.
+            </p>
+          )}
         </div>
       </div>
       <div className="flex gap-3 px-5 py-5 sm:px-6">
@@ -738,6 +775,12 @@ function todayDateValue() {
 
 function dateValue(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+// Local-time value for a datetime-local input. toISOString() would give UTC,
+// which is hours off from the user's clock.
+function localDateTimeValue(date: Date) {
+  return `${dateValue(date)}T${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
 }
 
 function startOfWeek(date: Date) {
