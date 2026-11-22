@@ -72,7 +72,16 @@ type AdminView = 'members' | 'groups' | 'catalog'
 type ManagedMember = { id: string; email: string; role: string }
 type AdminScope = 'global' | 'group'
 type CatalogItemDraft = Omit<ItemPostRequest, 'id' | 'urls'>
-type CatalogImageChanges = { uploads: File[]; removedImageIds: string[] }
+// A Catalog item has a single image. A new upload replaces any existing
+// image(s); `onUploaded` / `onRemoved` let the form drop each change from its
+// staged state as soon as it is applied, so a retry after a partial failure
+// never re-uploads or re-deletes.
+type CatalogImageChanges = {
+  upload: File | null
+  removedImageIds: string[]
+  onUploaded: () => void
+  onRemoved: (imageId: string) => void
+}
 type PendingCatalogImage = { file: File; previewUrl: string }
 
 const emptyCatalogItem: CatalogItemDraft = {
@@ -174,7 +183,7 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
     )
   }
 
-  function saveCatalogItem(imageChanges: CatalogImageChanges) {
+  async function saveCatalogItem(imageChanges: CatalogImageChanges) {
     const input: ItemPostRequest = {
       id: catalogItemToEdit?.id ?? crypto.randomUUID(),
       name: catalogItemDraft.name.trim(),
@@ -185,29 +194,32 @@ export function AdminPage({ scope }: { scope: AdminScope }) {
     if (!input.name) return
 
     const mutation = catalogItemToEdit ? updateCatalogItem : createCatalogItem
-    mutation.mutate(input, {
-      onSuccess: async () => {
-        if (catalogItemToEdit) {
-          await Promise.all([
-            ...imageChanges.removedImageIds.map((imageId) =>
-              deleteCatalogItemImage.mutateAsync({
-                itemId: catalogItemToEdit.id,
-                imageId,
-              }),
-            ),
-            ...imageChanges.uploads.map((image) =>
-              uploadCatalogItemImage.mutateAsync({
-                itemId: catalogItemToEdit.id,
-                image,
-              }),
-            ),
-          ])
+    try {
+      await mutation.mutateAsync(input)
+      if (catalogItemToEdit) {
+        const itemId = catalogItemToEdit.id
+        // Upload before deleting so a failed replacement never leaves the
+        // item without an image. Run sequentially so the mutation hooks
+        // report the request that actually failed.
+        if (imageChanges.upload) {
+          await uploadCatalogItemImage.mutateAsync({
+            itemId,
+            image: imageChanges.upload,
+          })
+          imageChanges.onUploaded()
         }
-        setCatalogItemToEdit(null)
-        setCreatingCatalogItem(false)
-        setCatalogItemDraft(emptyCatalogItem)
-      },
-    })
+        for (const imageId of imageChanges.removedImageIds) {
+          await deleteCatalogItemImage.mutateAsync({ itemId, imageId })
+          imageChanges.onRemoved(imageId)
+        }
+      }
+      setCatalogItemToEdit(null)
+      setCreatingCatalogItem(false)
+      setCatalogItemDraft(emptyCatalogItem)
+    } catch {
+      // Mutation errors are shown in the form; already-applied image changes
+      // have been cleared from the form, so saving again only retries the rest.
+    }
   }
   async function saveGroup() {
     const name = newGroup.name.trim()
@@ -1214,28 +1226,55 @@ function CatalogItemForm({
   submitLabel: string
 }) {
   const imagesQuery = useItemImagesQuery(itemId)
-  const [pendingUploads, setPendingUploads] = useState<PendingCatalogImage[]>(
-    [],
+  const [pendingImage, setPendingImage] = useState<PendingCatalogImage | null>(
+    null,
   )
   const [removedImageIds, setRemovedImageIds] = useState<Set<string>>(new Set())
-  const previewUrls = useRef(new Set<string>())
+  const previewUrl = useRef<string | null>(null)
 
   useEffect(
     () => () => {
-      previewUrls.current.forEach((url) => URL.revokeObjectURL(url))
+      if (previewUrl.current) URL.revokeObjectURL(previewUrl.current)
     },
     [],
   )
 
-  function uploadImages(files: FileList | null) {
-    if (!itemId || !files?.length) return
+  const existingImages = imagesQuery.data ?? []
+  const keptImages = existingImages.filter(
+    (image) => !removedImageIds.has(image.id),
+  )
+  const currentImage =
+    keptImages.find((image) => image.is_primary) ?? keptImages.at(0)
 
-    const pendingImages = Array.from(files).map((file) => {
-      const previewUrl = URL.createObjectURL(file)
-      previewUrls.current.add(previewUrl)
-      return { file, previewUrl }
-    })
-    setPendingUploads((current) => [...current, ...pendingImages])
+  function clearPendingImage() {
+    if (previewUrl.current) URL.revokeObjectURL(previewUrl.current)
+    previewUrl.current = null
+    setPendingImage(null)
+  }
+
+  function chooseImage(file: File | undefined) {
+    if (!itemId || !file) return
+
+    clearPendingImage()
+    const url = URL.createObjectURL(file)
+    previewUrl.current = url
+    setPendingImage({ file, previewUrl: url })
+    // The new image replaces whatever the item currently has.
+    setRemovedImageIds(
+      (current) =>
+        new Set([...current, ...existingImages.map((image) => image.id)]),
+    )
+  }
+
+  function removeCurrentImage() {
+    setRemovedImageIds(
+      (current) =>
+        new Set([...current, ...existingImages.map((image) => image.id)]),
+    )
+  }
+
+  function restoreImage() {
+    setRemovedImageIds(new Set())
   }
 
   return (
@@ -1244,8 +1283,15 @@ function CatalogItemForm({
       onSubmit={(event) => {
         event.preventDefault()
         onSubmit({
-          uploads: pendingUploads.map((image) => image.file),
+          upload: pendingImage?.file ?? null,
           removedImageIds: [...removedImageIds],
+          onUploaded: clearPendingImage,
+          onRemoved: (imageId) =>
+            setRemovedImageIds((current) => {
+              const next = new Set(current)
+              next.delete(imageId)
+              return next
+            }),
         })
       }}
     >
@@ -1317,7 +1363,7 @@ function CatalogItemForm({
             htmlFor="catalog-item-images"
             className="text-sm font-semibold"
           >
-            Item images
+            Item image
           </label>
           <label
             htmlFor="catalog-item-images"
@@ -1325,91 +1371,80 @@ function CatalogItemForm({
             aria-disabled={submitting}
           >
             <ImagePlus aria-hidden="true" size={18} />
-            Choose images
+            {pendingImage || currentImage ? 'Replace image' : 'Choose image'}
             <input
               id="catalog-item-images"
               className="sr-only"
               type="file"
               accept="image/*"
-              multiple
               onChange={(event) => {
-                uploadImages(event.target.files)
+                chooseImage(event.target.files?.[0])
                 event.target.value = ''
               }}
               disabled={submitting}
             />
           </label>
           <p className="mt-1 text-xs text-(--sea-ink-soft)">
-            Upload one or more images for this Catalog item.
+            Each Catalog item has one image. Choosing a new one replaces the
+            current image when you save.
           </p>
-          {((imagesQuery.data?.length ?? 0) > 0 ||
-            pendingUploads.length > 0) && (
-            <div className="mt-4 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">
-              {(imagesQuery.data ?? []).map((image, index) => (
-                <div
-                  key={image.id}
-                  className={`rounded-xl border border-(--line) bg-white p-2 sm:w-32 ${removedImageIds.has(image.id) ? 'opacity-50' : ''}`}
-                >
-                  <img
-                    src={image.thumbnail_url}
-                    alt={`Catalog item image ${index + 1}`}
-                    className="aspect-square w-full rounded-lg border border-(--line) object-cover"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="mt-2 min-h-11 w-full border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
-                    onClick={() =>
-                      setRemovedImageIds((current) => {
-                        const next = new Set(current)
-                        if (next.has(image.id)) next.delete(image.id)
-                        else next.add(image.id)
-                        return next
-                      })
-                    }
-                    disabled={submitting}
-                  >
-                    <X aria-hidden="true" size={16} />
-                    {removedImageIds.has(image.id) ? 'Restore' : 'Remove'}
-                  </Button>
-                </div>
-              ))}
-              {pendingUploads.map((image, index) => (
-                <div
-                  key={`${image.file.name}-${index}`}
-                  className="rounded-xl border border-(--line) bg-white p-2 sm:w-32"
-                >
-                  <img
-                    src={image.previewUrl}
-                    alt={`New image: ${image.file.name}`}
-                    className="aspect-square w-full rounded-lg border border-(--line) object-cover"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="mt-2 min-h-11 w-full border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
-                    onClick={() => {
-                      previewUrls.current.delete(image.previewUrl)
-                      URL.revokeObjectURL(image.previewUrl)
-                      setPendingUploads((current) =>
-                        current.filter(
-                          (_, pendingIndex) => pendingIndex !== index,
-                        ),
-                      )
-                    }}
-                    disabled={submitting}
-                  >
-                    <X aria-hidden="true" size={16} />
-                    Remove
-                  </Button>
-                </div>
-              ))}
+          {pendingImage ? (
+            <div className="mt-4 w-full rounded-xl border border-(--line) bg-white p-2 sm:w-32">
+              <img
+                src={pendingImage.previewUrl}
+                alt={`New image: ${pendingImage.file.name}`}
+                className="aspect-square w-full rounded-lg border border-(--line) object-cover"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-2 min-h-11 w-full border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
+                onClick={() => {
+                  clearPendingImage()
+                  restoreImage()
+                }}
+                disabled={submitting}
+              >
+                <X aria-hidden="true" size={16} />
+                Undo
+              </Button>
             </div>
-          )}
+          ) : currentImage ? (
+            <div className="mt-4 w-full rounded-xl border border-(--line) bg-white p-2 sm:w-32">
+              <img
+                src={currentImage.thumbnail_url}
+                alt="Catalog item image"
+                className="aspect-square w-full rounded-lg border border-(--line) object-cover"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-2 min-h-11 w-full border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
+                onClick={removeCurrentImage}
+                disabled={submitting}
+              >
+                <X aria-hidden="true" size={16} />
+                Remove
+              </Button>
+            </div>
+          ) : removedImageIds.size > 0 ? (
+            <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-(--line) bg-white p-3 text-sm text-(--sea-ink-soft)">
+              The current image will be removed when you save.
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-11 border-(--line)"
+                onClick={restoreImage}
+                disabled={submitting}
+              >
+                Restore
+              </Button>
+            </div>
+          ) : null}
         </div>
       ) : (
         <p className="text-sm text-(--sea-ink-soft)">
-          Save the item before uploading images.
+          Save the item before adding an image.
         </p>
       )}
       {error ? <ErrorText error={error} /> : null}
