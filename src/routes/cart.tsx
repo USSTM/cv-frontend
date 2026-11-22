@@ -102,7 +102,7 @@ function CartPage() {
                         >
                           <button
                             type="button"
-                            className="flex size-9 items-center justify-center rounded-l-lg hover:bg-(--sand) disabled:opacity-40"
+                            className="flex size-11 items-center justify-center rounded-l-lg hover:bg-(--sand) disabled:opacity-40"
                             onClick={() =>
                               activeGroup &&
                               updateQuantity.mutate({
@@ -123,7 +123,7 @@ function CartPage() {
                           </span>
                           <button
                             type="button"
-                            className="flex size-9 items-center justify-center rounded-r-lg hover:bg-(--sand) disabled:opacity-40"
+                            className="flex size-11 items-center justify-center rounded-r-lg hover:bg-(--sand) disabled:opacity-40"
                             onClick={() =>
                               activeGroup &&
                               updateQuantity.mutate({
@@ -143,7 +143,7 @@ function CartPage() {
                         </div>
                         <button
                           type="button"
-                          className="flex size-9 items-center justify-center rounded-lg text-(--sea-ink-soft) hover:bg-red-50 hover:text-red-700"
+                          className="flex size-11 items-center justify-center rounded-lg text-(--sea-ink-soft) hover:bg-red-50 hover:text-red-700"
                           onClick={() =>
                             activeGroup &&
                             removeItem.mutate({
