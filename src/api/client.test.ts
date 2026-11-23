@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { apiRequest } from './client'
+import {
+  ApiError,
+  NETWORK_ERROR_CODE,
+  NETWORK_ERROR_MESSAGE,
+  NETWORK_ERROR_STATUS,
+  apiRequest,
+  describeHttpStatus,
+} from './client'
 
 const fetchMock = vi.fn<typeof fetch>()
 
@@ -98,6 +105,82 @@ describe('apiRequest', () => {
     await expect(
       apiRequest<void>('/auth/logout', { method: 'POST' }),
     ).resolves.toBeUndefined()
+  })
+
+  it('replaces the browser "Failed to fetch" error with a detailed network error', async () => {
+    vi.stubGlobal('fetch', fetchMock)
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'))
+
+    const request = apiRequest('/catalog/items')
+
+    await expect(request).rejects.toBeInstanceOf(ApiError)
+    await expect(request).rejects.toMatchObject({
+      code: NETWORK_ERROR_CODE,
+      message: NETWORK_ERROR_MESSAGE,
+      status: NETWORK_ERROR_STATUS,
+    })
+  })
+
+  it('passes aborted requests through unchanged', async () => {
+    vi.stubGlobal('fetch', fetchMock)
+    const abort = new DOMException('The operation was aborted.', 'AbortError')
+    fetchMock.mockRejectedValue(abort)
+
+    await expect(apiRequest('/catalog/items')).rejects.toBe(abort)
+  })
+
+  it('describes an HTML gateway error page by its status instead of showing the HTML', async () => {
+    vi.stubGlobal('fetch', fetchMock)
+    fetchMock.mockResolvedValue(
+      new Response('<html><body><h1>502 Bad Gateway</h1></body></html>', {
+        status: 502,
+        headers: { 'Content-Type': 'text/html' },
+      }),
+    )
+
+    await expect(apiRequest('/catalog/items')).rejects.toMatchObject({
+      message: describeHttpStatus(502),
+      status: 502,
+    })
+  })
+
+  it('describes an empty error response by its status', async () => {
+    vi.stubGlobal('fetch', fetchMock)
+    fetchMock.mockResolvedValue(new Response(null, { status: 500 }))
+
+    await expect(apiRequest('/catalog/items')).rejects.toMatchObject({
+      message: describeHttpStatus(500),
+      status: 500,
+    })
+  })
+
+  it('describes a JSON error response with no message by its status', async () => {
+    vi.stubGlobal('fetch', fetchMock)
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ detail: 'nope' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    await expect(apiRequest('/admin/members')).rejects.toMatchObject({
+      message: describeHttpStatus(403),
+      status: 403,
+    })
+  })
+
+  it('keeps a short plain-text error message from the API', async () => {
+    vi.stubGlobal('fetch', fetchMock)
+    fetchMock.mockResolvedValue(
+      new Response('Item is already checked out.', { status: 409 }),
+    )
+
+    await expect(
+      apiRequest('/requests', { method: 'POST' }),
+    ).rejects.toMatchObject({
+      message: 'Item is already checked out.',
+      status: 409,
+    })
   })
 
   it('accepts a successful plain-text response', async () => {
