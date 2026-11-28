@@ -25,13 +25,6 @@ import { ApiError } from '@/api/client'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { useActiveGroup } from '@/lib/active-group'
 import { itemTypeClass, itemTypeLabels } from '@/lib/item-type'
 import { requireAuth } from '@/lib/route-guards'
@@ -40,8 +33,6 @@ export const Route = createFileRoute('/checkout')({
   beforeLoad: requireAuth,
   component: CheckoutPage,
 })
-
-type Condition = 'unusable' | 'damaged' | 'decent' | 'good' | 'pristine'
 
 const sections: Array<{ type: ItemType; title: string; description: string }> =
   [
@@ -70,7 +61,6 @@ function CheckoutPage() {
   const checkout = useCheckoutCartMutation()
   const cart = cartQuery.data ?? []
   const [dueDate, setDueDate] = useState('')
-  const [condition, setCondition] = useState<Condition>('good')
   const [preferredAvailabilityId, setPreferredAvailabilityId] = useState('')
   const [requestedReturnAt, setRequestedReturnAt] = useState('')
   const [result, setResult] = useState<CheckoutCartResponse | null>(null)
@@ -116,7 +106,9 @@ function CheckoutPage() {
         dueDate: hasBorrowing
           ? `${dueDate}T12:00:00.000Z`
           : new Date().toISOString(),
-        beforeCondition: condition,
+        // Members no longer record condition or a photo at checkout, but the
+        // API still requires both fields, so send fixed placeholder values.
+        beforeCondition: 'good',
         beforeConditionUrl: '',
         preferredAvailabilityId: preferredAvailabilityId || undefined,
         requestedReturnAt: requestedReturnAt
@@ -232,9 +224,7 @@ function CheckoutPage() {
                   {section.type === 'medium' && (
                     <BorrowingDetails
                       dueDate={dueDate}
-                      condition={condition}
                       onDueDateChange={setDueDate}
-                      onConditionChange={setCondition}
                     />
                   )}
                   {section.type === 'high' && (
@@ -326,14 +316,10 @@ function CheckoutPage() {
 
 function BorrowingDetails({
   dueDate,
-  condition,
   onDueDateChange,
-  onConditionChange,
 }: {
   dueDate: string
-  condition: Condition
   onDueDateChange: (value: string) => void
-  onConditionChange: (value: Condition) => void
 }) {
   return (
     <div className="border-t border-(--line) bg-(--foam) px-5 py-5 sm:px-6">
@@ -359,32 +345,6 @@ function BorrowingDetails({
                 onChange={(event) => onDueDateChange(event.target.value)}
                 onClick={(event) => event.currentTarget.showPicker?.()}
               />
-            </label>
-            <label className="text-sm font-semibold">
-              Current condition
-              <Select
-                value={condition}
-                onValueChange={(value) => onConditionChange(value as Condition)}
-              >
-                <SelectTrigger className="mt-2 w-full bg-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(
-                    [
-                      'pristine',
-                      'good',
-                      'decent',
-                      'damaged',
-                      'unusable',
-                    ] as const
-                  ).map((value) => (
-                    <SelectItem key={value} value={value}>
-                      {value[0].toUpperCase() + value.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </label>
           </div>
         </div>
