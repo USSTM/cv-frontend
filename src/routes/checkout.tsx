@@ -34,6 +34,8 @@ export const Route = createFileRoute('/checkout')({
   component: CheckoutPage,
 })
 
+const COLLECTION_WINDOWS_PER_PAGE = 6
+
 const sections: Array<{ type: ItemType; title: string; description: string }> =
   [
     {
@@ -87,12 +89,25 @@ function CheckoutPage() {
       ),
     [availability.data],
   )
+  const selectedCollectionSlot = upcomingAvailability.find(
+    (slot) => slot.id === preferredAvailabilityId,
+  )
+  // Local "YYYY-MM-DDTHH:mm", the same format a datetime-local input uses.
+  const collectionEndsAt = selectedCollectionSlot
+    ? `${selectedCollectionSlot.date.slice(0, 10)}T${selectedCollectionSlot.end_time.slice(0, 5)}`
+    : null
+  const returnBeforeCollection =
+    collectionEndsAt !== null &&
+    requestedReturnAt !== '' &&
+    new Date(requestedReturnAt) <= new Date(collectionEndsAt)
   const itemCount = cart.reduce((total, item) => total + item.quantity, 0)
   const canSubmit =
     Boolean(activeGroup) &&
     !checkout.isPending &&
     (!hasBorrowing || Boolean(dueDate)) &&
-    (!hasRequest || Boolean(preferredAvailabilityId && requestedReturnAt))
+    (!hasRequest ||
+      (Boolean(preferredAvailabilityId && requestedReturnAt) &&
+        !returnBeforeCollection))
 
   async function handleSubmit() {
     if (!activeGroup) return
@@ -231,6 +246,8 @@ function CheckoutPage() {
                     <RequestedCollectionTime
                       selectedAvailabilityId={preferredAvailabilityId}
                       requestedReturnAt={requestedReturnAt}
+                      collectionEndsAt={collectionEndsAt}
+                      returnBeforeCollection={returnBeforeCollection}
                       availability={upcomingAvailability}
                       isLoading={availability.isLoading}
                       isError={availability.isError}
@@ -307,6 +324,11 @@ function CheckoutPage() {
                 Choose when you will return your Request Item.
               </p>
             )}
+            {hasRequest && returnBeforeCollection && (
+              <p className="mt-3 text-center text-xs leading-5 text-red-700">
+                Choose a return time after your collection window ends.
+              </p>
+            )}
           </aside>
         </div>
       </section>
@@ -341,7 +363,7 @@ function BorrowingDetails({
                 className="mt-2 h-11 cursor-pointer border-(--line) bg-(--sand) text-(--sea-ink) [color-scheme:light]"
                 type="date"
                 value={dueDate}
-                min={new Date().toISOString().slice(0, 10)}
+                min={todayDateValue()}
                 onChange={(event) => onDueDateChange(event.target.value)}
                 onClick={(event) => event.currentTarget.showPicker?.()}
               />
@@ -356,6 +378,8 @@ function BorrowingDetails({
 function RequestedCollectionTime({
   selectedAvailabilityId,
   requestedReturnAt,
+  collectionEndsAt,
+  returnBeforeCollection,
   availability,
   isLoading,
   isError,
@@ -364,6 +388,8 @@ function RequestedCollectionTime({
 }: {
   selectedAvailabilityId: string
   requestedReturnAt: string
+  collectionEndsAt: string | null
+  returnBeforeCollection: boolean
   availability: Array<{
     id: string
     date: string
@@ -378,6 +404,7 @@ function RequestedCollectionTime({
 }) {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()))
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [windowPage, setWindowPage] = useState(0)
   const days = useMemo(
     () => Array.from({ length: 7 }, (_, index) => addDays(weekStart, index)),
     [weekStart],
@@ -405,9 +432,19 @@ function RequestedCollectionTime({
     () => windowsByDate.find(([date]) => date === selectedDate)?.[1] ?? [],
     [windowsByDate, selectedDate],
   )
+  const windowPageCount = Math.max(
+    1,
+    Math.ceil(selectedWindows.length / COLLECTION_WINDOWS_PER_PAGE),
+  )
+  const currentWindowPage = Math.min(windowPage, windowPageCount - 1)
+  const visibleWindows = selectedWindows.slice(
+    currentWindowPage * COLLECTION_WINDOWS_PER_PAGE,
+    (currentWindowPage + 1) * COLLECTION_WINDOWS_PER_PAGE,
+  )
 
   function selectDate(date: string) {
     setSelectedDate(date)
+    setWindowPage(0)
 
     // Clear a previously chosen slot if it doesn't belong to the newly
     // selected date, so the form can't submit a stale collection window.
@@ -436,13 +473,26 @@ function RequestedCollectionTime({
               type="datetime-local"
               required
               value={requestedReturnAt}
-              min={new Date().toISOString().slice(0, 16)}
+              min={collectionEndsAt ?? localDateTimeValue(new Date())}
+              aria-invalid={returnBeforeCollection}
+              aria-describedby={
+                returnBeforeCollection ? 'return-before-collection' : undefined
+              }
               onChange={(event) =>
                 onRequestedReturnAtChange(event.target.value)
               }
               className="mt-2 h-11 bg-white text-(--sea-ink) [color-scheme:light]"
             />
           </label>
+          {returnBeforeCollection && (
+            <p
+              id="return-before-collection"
+              role="alert"
+              className="mt-2 text-xs text-red-700"
+            >
+              Return time must be after your collection window ends.
+            </p>
+          )}
         </div>
       </div>
       <div className="flex gap-3 px-5 py-5 sm:px-6">
@@ -550,7 +600,7 @@ function RequestedCollectionTime({
                       {formatCollectionDate(selectedDate)}
                     </h4>
                     <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                      {selectedWindows.map((slot) => {
+                      {visibleWindows.map((slot) => {
                         const selected = selectedAvailabilityId === slot.id
                         return (
                           <button
@@ -573,6 +623,37 @@ function RequestedCollectionTime({
                         )
                       })}
                     </div>
+                    {selectedWindows.length > COLLECTION_WINDOWS_PER_PAGE && (
+                      <div className="mt-3 flex items-center justify-between gap-3">
+                        <button
+                          type="button"
+                          className="inline-flex h-9 items-center gap-1 rounded-lg border border-(--line) px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40 hover:bg-(--foam)"
+                          disabled={currentWindowPage === 0}
+                          onClick={() =>
+                            setWindowPage((current) => Math.max(current - 1, 0))
+                          }
+                        >
+                          <ChevronLeft aria-hidden="true" size={16} />
+                          Previous
+                        </button>
+                        <p className="text-xs text-(--sea-ink-soft)">
+                          Page {currentWindowPage + 1} of {windowPageCount}
+                        </p>
+                        <button
+                          type="button"
+                          className="inline-flex h-9 items-center gap-1 rounded-lg border border-(--line) px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40 hover:bg-(--foam)"
+                          disabled={currentWindowPage === windowPageCount - 1}
+                          onClick={() =>
+                            setWindowPage((current) =>
+                              Math.min(current + 1, windowPageCount - 1),
+                            )
+                          }
+                        >
+                          Next
+                          <ChevronRight aria-hidden="true" size={16} />
+                        </button>
+                      </div>
+                    )}
                   </section>
                 ) : (
                   <p className="text-sm text-(--sea-ink-soft)">
@@ -607,6 +688,12 @@ function todayDateValue() {
 
 function dateValue(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+// Local-time value for a datetime-local input. toISOString() would give UTC,
+// which is hours off from the user's clock.
+function localDateTimeValue(date: Date) {
+  return `${dateValue(date)}T${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
 }
 
 function startOfWeek(date: Date) {

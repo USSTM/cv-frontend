@@ -26,4 +26,25 @@ jobs:
                     --document-name AWS-RunShellScript \
                     --parameters 'commands=["set -e","cd /opt/cv-frontend","sudo -u ssm-user git pull","docker compose -f docker-compose.prod.yml up -d --build frontend"]' \
                     --query Command.CommandId --output text)
-                  aws ssm wait command-executed --command-id "$CMD_ID" --instance-id "${{ vars.EC2_INSTANCE_ID }}"
+                  errors=0
+                  for attempt in {1..180}; do
+                    if ! status=$(aws ssm get-command-invocation --command-id "$CMD_ID" --instance-id "${{ vars.EC2_INSTANCE_ID }}" --query Status --output text 2>/dev/null); then
+                      errors=$((errors + 1))
+                      if (( errors > 6 )); then
+                        echo 'Unable to read deployment command status' >&2
+                        exit 1
+                      fi
+                      sleep 10
+                      continue
+                    fi
+                    errors=0
+                    case "$status" in
+                      Success) exit 0 ;;
+                      Failed|Cancelled|TimedOut|Cancelling)
+                        aws ssm get-command-invocation --command-id "$CMD_ID" --instance-id "${{ vars.EC2_INSTANCE_ID }}" --query StandardErrorContent --output text
+                        exit 1 ;;
+                    esac
+                    sleep 10
+                  done
+                  echo 'Timed out waiting for the deployment command' >&2
+                  exit 1

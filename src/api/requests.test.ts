@@ -48,4 +48,27 @@ describe('request API', () => {
       }),
     ])
   })
+
+  it('submits a denial reason with a denied Request', async () => {
+    vi.stubGlobal('fetch', fetchMock)
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ id: 'request-1' })),
+    )
+
+    await reviewRequest('request-1', {
+      status: 'denied',
+      denial_reason: 'The item is reserved for an upcoming event.',
+    })
+
+    expect(fetchMock.mock.calls[0]).toEqual([
+      new URL('/requests/request-1/review', 'http://localhost:8080'),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          status: 'denied',
+          denial_reason: 'The item is reserved for an upcoming event.',
+        }),
+      }),
+    ])
+  })
 })

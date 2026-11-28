@@ -1,6 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { ReviewRequestRequest } from './generated/types.gen'
-import { getAllRequests, getPendingRequests, reviewRequest } from './requests'
+import {
+  getAllRequests,
+  getPendingRequests,
+  reviewRequest,
+  type ReviewRequestPayload,
+} from './requests'
 
 export const requestsQueryKey = ['requests'] as const
 export const pendingRequestsQueryKey = ['requests', 'pending'] as const
@@ -28,7 +32,7 @@ export function useReviewRequestMutation() {
       body,
     }: {
       requestId: string
-      body: ReviewRequestRequest
+      body: ReviewRequestPayload
     }) => reviewRequest(requestId, body),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: requestsQueryKey }),
